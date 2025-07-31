@@ -42,54 +42,81 @@ import {
 } from "lucide-react";
 
 // Professional Multi-Stage Camera Controller
-function CameraController() {
+function CameraController({
+  theme,
+  pendingTheme,
+  isTransitioning,
+  cameraReachedGround,
+}: {
+  theme: string;
+  pendingTheme: string | null;
+  isTransitioning: boolean;
+  cameraReachedGround: () => void;
+}) {
   const { camera } = useThree();
-  const { theme } = useTheme();
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [cameraTransitioning, setCameraTransitioning] = useState(false);
   const [animationStage, setAnimationStage] = useState(0);
+  const [hasReachedGround, setHasReachedGround] = useState(false);
   const targetPosition = useRef(new THREE.Vector3());
   const targetLookAt = useRef(new THREE.Vector3());
   const currentLookAt = useRef(new THREE.Vector3());
 
-  // Multi-stage spring animation
+  // Use pendingTheme for animation direction, actual theme for final state
+  const animationTarget = pendingTheme || theme;
+
+  // Multi-stage spring animation with precise timing
   const { progress } = useSpring({
-    progress: theme === "light" ? 1 : 0,
+    progress: animationTarget === "light" ? 1 : 0,
     config: {
-      tension: 30,
-      friction: 40,
-      mass: 2,
-      duration: 6000, // 6 second cinematic sequence
+      tension: 20,
+      friction: 50,
+      mass: 3,
+      duration: 8000, // 8 second cinematic sequence for more realistic landing
     },
     onStart: () => {
-      setIsTransitioning(true);
+      setCameraTransitioning(true);
       setAnimationStage(0);
+      setHasReachedGround(false);
     },
     onRest: () => {
-      setIsTransitioning(false);
-      setAnimationStage(theme === "light" ? 3 : 0);
+      setCameraTransitioning(false);
+      setAnimationStage(animationTarget === "light" ? 3 : 0);
     },
   });
 
   useFrame(() => {
     const t = progress.get();
 
-    // Define animation stages
-    let stage1T = 0; // Space view (0-0.3)
-    let stage2T = 0; // Zoom to Earth (0.3-0.7)
-    let stage3T = 0; // Land and look up (0.7-1.0)
+    // Define animation stages with more precise timing
+    let stage1T = 0; // Space view (0-0.25)
+    let stage2T = 0; // Zoom to Earth (0.25-0.65)
+    let stage3T = 0; // Land and settle (0.65-0.9)
+    let stage4T = 0; // Look up at sky (0.9-1.0)
 
-    if (t <= 0.3) {
-      stage1T = t / 0.3;
+    if (t <= 0.25) {
+      stage1T = t / 0.25;
       setAnimationStage(1);
-    } else if (t <= 0.7) {
+    } else if (t <= 0.65) {
       stage1T = 1;
-      stage2T = (t - 0.3) / 0.4;
+      stage2T = (t - 0.25) / 0.4;
       setAnimationStage(2);
+    } else if (t <= 0.9) {
+      stage1T = 1;
+      stage2T = 1;
+      stage3T = (t - 0.65) / 0.25;
+      setAnimationStage(3);
     } else {
       stage1T = 1;
       stage2T = 1;
-      stage3T = (t - 0.7) / 0.3;
-      setAnimationStage(3);
+      stage3T = 1;
+      stage4T = (t - 0.9) / 0.1;
+      setAnimationStage(4);
+    }
+
+    // Check if camera has reached ground for light theme transition
+    if (animationTarget === "light" && stage3T >= 0.8 && !hasReachedGround) {
+      setHasReachedGround(true);
+      cameraReachedGround();
     }
 
     // Smooth easing functions
@@ -98,91 +125,107 @@ function CameraController() {
     const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
     const easeIn = (t: number) => t * t * t;
 
-    if (theme === "light") {
-      // Going to light theme - multi-stage animation
+    if (animationTarget === "light") {
+      // Going to light theme - precise 4-stage animation
       if (stage1T < 1) {
-        // Stage 1: Stay in space but start moving toward Earth
+        // Stage 1: Begin approach from space
         const easedT1 = easeInOut(stage1T);
         const spacePos = new THREE.Vector3(0, 0, 25);
-        const approachPos = new THREE.Vector3(0, 5, 20);
+        const approachPos = new THREE.Vector3(0, 8, 18);
         targetPosition.current.lerpVectors(spacePos, approachPos, easedT1);
 
-        // Keep looking at Earth center
         const earthCenter = new THREE.Vector3(20, 5, -30);
         currentLookAt.current.lerp(earthCenter, 0.02);
-
-        camera.fov = THREE.MathUtils.lerp(75, 80, easedT1);
+        camera.fov = THREE.MathUtils.lerp(75, 85, easedT1);
       } else if (stage2T < 1) {
-        // Stage 2: Dramatic zoom toward Earth
+        // Stage 2: Dramatic zoom toward Earth surface
         const easedT2 = easeIn(stage2T);
-        const approachPos = new THREE.Vector3(0, 5, 20);
-        const closePos = new THREE.Vector3(15, 8, -5);
+        const approachPos = new THREE.Vector3(0, 8, 18);
+        const closePos = new THREE.Vector3(12, 10, -8);
         targetPosition.current.lerpVectors(approachPos, closePos, easedT2);
 
-        // Continue looking at Earth but get closer
         const earthCenter = new THREE.Vector3(20, 5, -30);
-        const closeEarthView = new THREE.Vector3(20, 6, -25);
+        const surfaceView = new THREE.Vector3(18, 8, -20);
         const lookTarget = new THREE.Vector3();
-        lookTarget.lerpVectors(earthCenter, closeEarthView, easedT2);
+        lookTarget.lerpVectors(earthCenter, surfaceView, easedT2);
         currentLookAt.current.lerp(lookTarget, 0.03);
-
-        camera.fov = THREE.MathUtils.lerp(80, 95, easedT2);
-      } else {
-        // Stage 3: Land on Earth and look up at sky
+        camera.fov = THREE.MathUtils.lerp(85, 105, easedT2);
+      } else if (stage3T < 1) {
+        // Stage 3: Final landing and settle on ground
         const easedT3 = easeOut(stage3T);
-        const closePos = new THREE.Vector3(15, 8, -5);
-        const groundPos = new THREE.Vector3(0, 2, 8);
+        const closePos = new THREE.Vector3(12, 10, -8);
+        const groundPos = new THREE.Vector3(0, 1.5, 10); // Lower to ground level
         targetPosition.current.lerpVectors(closePos, groundPos, easedT3);
 
-        // Transition from looking at Earth to looking up at sky
-        const closeEarthView = new THREE.Vector3(20, 6, -25);
+        const surfaceView = new THREE.Vector3(18, 8, -20);
+        const groundView = new THREE.Vector3(0, 1.5, 5); // Look slightly ahead on ground
+        const lookTarget = new THREE.Vector3();
+        lookTarget.lerpVectors(surfaceView, groundView, easedT3);
+        currentLookAt.current.lerp(lookTarget, 0.04);
+        camera.fov = THREE.MathUtils.lerp(105, 95, easedT3);
+      } else {
+        // Stage 4: Look up at sky (only after theme has changed)
+        const easedT4 = easeOut(stage4T);
+        const groundPos = new THREE.Vector3(0, 1.5, 10);
+        targetPosition.current.copy(groundPos);
+
+        const groundView = new THREE.Vector3(0, 1.5, 5);
         const skyView = new THREE.Vector3(0, 50, 0);
         const lookTarget = new THREE.Vector3();
-        lookTarget.lerpVectors(closeEarthView, skyView, easedT3);
-        currentLookAt.current.lerp(lookTarget, 0.04);
-
-        camera.fov = THREE.MathUtils.lerp(95, 90, easedT3);
+        lookTarget.lerpVectors(groundView, skyView, easedT4);
+        currentLookAt.current.lerp(lookTarget, 0.05);
+        camera.fov = THREE.MathUtils.lerp(95, 90, easedT4);
       }
     } else {
-      // Going to dark theme - reverse sequence
+      // Going to dark theme - smooth reverse with gradient effects
       const reverseT = 1 - t;
-      const easedReverse = easeInOut(reverseT);
 
-      if (reverseT > 0.7) {
-        // Reverse stage 3: Look down from sky to Earth
-        const stageT = (reverseT - 0.7) / 0.3;
-        const easedT = easeIn(stageT);
-        const groundPos = new THREE.Vector3(0, 2, 8);
-        const closePos = new THREE.Vector3(15, 8, -5);
-        targetPosition.current.lerpVectors(groundPos, closePos, easedT);
+      if (reverseT > 0.75) {
+        // Reverse stage 4: Look down from sky to ground
+        const stageT = (reverseT - 0.75) / 0.25;
+        const easedT = easeOut(stageT);
+        const groundPos = new THREE.Vector3(0, 1.5, 10);
+        targetPosition.current.copy(groundPos);
 
         const skyView = new THREE.Vector3(0, 50, 0);
-        const closeEarthView = new THREE.Vector3(20, 6, -25);
+        const groundView = new THREE.Vector3(0, 1.5, 5);
         const lookTarget = new THREE.Vector3();
-        lookTarget.lerpVectors(skyView, closeEarthView, easedT);
-        currentLookAt.current.lerp(lookTarget, 0.04);
-
+        lookTarget.lerpVectors(skyView, groundView, easedT);
+        currentLookAt.current.lerp(lookTarget, 0.05);
         camera.fov = THREE.MathUtils.lerp(90, 95, easedT);
-      } else if (reverseT > 0.3) {
-        // Reverse stage 2: Zoom out from Earth
-        const stageT = (reverseT - 0.3) / 0.4;
-        const easedT = easeOut(stageT);
-        const closePos = new THREE.Vector3(15, 8, -5);
-        const approachPos = new THREE.Vector3(0, 5, 20);
+      } else if (reverseT > 0.35) {
+        // Reverse stage 3: Lift off from ground
+        const stageT = (reverseT - 0.35) / 0.4;
+        const easedT = easeInOut(stageT);
+        const groundPos = new THREE.Vector3(0, 1.5, 10);
+        const closePos = new THREE.Vector3(12, 10, -8);
+        targetPosition.current.lerpVectors(groundPos, closePos, easedT);
+
+        const groundView = new THREE.Vector3(0, 1.5, 5);
+        const surfaceView = new THREE.Vector3(18, 8, -20);
+        const lookTarget = new THREE.Vector3();
+        lookTarget.lerpVectors(groundView, surfaceView, easedT);
+        currentLookAt.current.lerp(lookTarget, 0.04);
+        camera.fov = THREE.MathUtils.lerp(95, 105, easedT);
+      } else if (reverseT > 0.15) {
+        // Reverse stage 2: Zoom out from Earth with gradient
+        const stageT = (reverseT - 0.15) / 0.2;
+        const easedT = easeInOut(stageT);
+        const closePos = new THREE.Vector3(12, 10, -8);
+        const approachPos = new THREE.Vector3(0, 8, 18);
         targetPosition.current.lerpVectors(closePos, approachPos, easedT);
 
-        const closeEarthView = new THREE.Vector3(20, 6, -25);
+        const surfaceView = new THREE.Vector3(18, 8, -20);
         const earthCenter = new THREE.Vector3(20, 5, -30);
         const lookTarget = new THREE.Vector3();
-        lookTarget.lerpVectors(closeEarthView, earthCenter, easedT);
+        lookTarget.lerpVectors(surfaceView, earthCenter, easedT);
         currentLookAt.current.lerp(lookTarget, 0.03);
-
-        camera.fov = THREE.MathUtils.lerp(95, 80, easedT);
+        camera.fov = THREE.MathUtils.lerp(105, 85, easedT);
       } else {
-        // Reverse stage 1: Return to space
-        const stageT = reverseT / 0.3;
-        const easedT = easeInOut(stageT);
-        const approachPos = new THREE.Vector3(0, 5, 20);
+        // Reverse stage 1: Return to original space position
+        const stageT = reverseT / 0.15;
+        const easedT = easeIn(stageT);
+        const approachPos = new THREE.Vector3(0, 8, 18);
         const spacePos = new THREE.Vector3(0, 0, 25);
         targetPosition.current.lerpVectors(approachPos, spacePos, easedT);
 
@@ -191,8 +234,7 @@ function CameraController() {
         const lookTarget = new THREE.Vector3();
         lookTarget.lerpVectors(earthCenter, spaceCenter, easedT);
         currentLookAt.current.lerp(lookTarget, 0.02);
-
-        camera.fov = THREE.MathUtils.lerp(80, 75, easedT);
+        camera.fov = THREE.MathUtils.lerp(85, 75, easedT);
       }
     }
 
@@ -206,8 +248,7 @@ function CameraController() {
 }
 
 // Realistic 3D Clouds positioned for ground-up view
-function RealisticClouds() {
-  const { theme } = useTheme();
+function RealisticClouds({ theme }: { theme: string }) {
   const cloudsGroupRef = useRef<THREE.Group>(null);
 
   // Position clouds above for sky view
@@ -322,8 +363,7 @@ function RealisticCloud({
 }
 
 // Enhanced Atmospheric Sky for Ground View
-function AtmosphericSky() {
-  const { theme } = useTheme();
+function AtmosphericSky({ theme }: { theme: string }) {
   const skyRef = useRef<THREE.Mesh>(null);
   const sunGlowRef = useRef<THREE.Mesh>(null);
 
@@ -392,44 +432,76 @@ function AtmosphericSky() {
   );
 }
 
-// Ground/Horizon for Earth Surface Feel
-function EarthSurface() {
-  const { theme } = useTheme();
+// Professional Realistic Earth Surface
+function EarthSurface({ theme }: { theme: string }) {
   const groundRef = useRef<THREE.Mesh>(null);
   const horizonRef = useRef<THREE.Mesh>(null);
+  const detailGroundRef = useRef<THREE.Mesh>(null);
 
+  // Enhanced realistic ground material with detailed textures
   const groundMaterial = useMemo(() => {
     return new THREE.MeshLambertMaterial({
       map: new THREE.TextureLoader().load(
-        "data:image/svg+xml;base64," +
+        "data:image/svg+xml;base64=" +
           btoa(`
-        <svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+        <svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <radialGradient id="grass" cx="50%" cy="50%">
-              <stop offset="0%" style="stop-color:#4a7c59"/>
-              <stop offset="50%" style="stop-color:#2d5a3d"/>
-              <stop offset="100%" style="stop-color:#1a3324"/>
+            <radialGradient id="richEarth" cx="50%" cy="50%">
+              <stop offset="0%" style="stop-color:#3a5f3a"/>
+              <stop offset="30%" style="stop-color:#2d4f2d"/>
+              <stop offset="60%" style="stop-color:#1e3a1e"/>
+              <stop offset="100%" style="stop-color:#0f240f"/>
+            </radialGradient>
+            <linearGradient id="grassPatch" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#4a7c4a"/>
+              <stop offset="50%" style="stop-color:#5d8a5d"/>
+              <stop offset="100%" style="stop-color:#70a070"/>
+            </linearGradient>
+            <radialGradient id="dirtPatch" cx="60%" cy="40%">
+              <stop offset="0%" style="stop-color:#8b6f47"/>
+              <stop offset="50%" style="stop-color:#705440"/>
+              <stop offset="100%" style="stop-color:#523d2a"/>
             </radialGradient>
           </defs>
-          <rect width="512" height="512" fill="url(#grass)"/>
 
-          <!-- Grass texture pattern -->
-          <circle cx="100" cy="100" r="3" fill="#5d8a6a" opacity="0.6"/>
-          <circle cx="200" cy="150" r="2" fill="#5d8a6a" opacity="0.7"/>
-          <circle cx="350" cy="80" r="4" fill="#5d8a6a" opacity="0.5"/>
-          <circle cx="450" cy="200" r="2" fill="#5d8a6a" opacity="0.8"/>
-          <circle cx="80" cy="300" r="3" fill="#5d8a6a" opacity="0.6"/>
-          <circle cx="300" cy="400" r="2" fill="#5d8a6a" opacity="0.7"/>
+          <!-- Rich earth base -->
+          <rect width="1024" height="1024" fill="url(#richEarth)"/>
 
-          <!-- Small hills pattern -->
-          <ellipse cx="150" cy="480" rx="80" ry="15" fill="#3e6b4a" opacity="0.4"/>
-          <ellipse cx="400" cy="490" rx="60" ry="10" fill="#3e6b4a" opacity="0.3"/>
+          <!-- Grass patches -->
+          <ellipse cx="200" cy="300" rx="120" ry="80" fill="url(#grassPatch)" opacity="0.8"/>
+          <ellipse cx="600" cy="200" rx="100" ry="90" fill="url(#grassPatch)" opacity="0.7"/>
+          <ellipse cx="800" cy="500" rx="90" ry="70" fill="url(#grassPatch)" opacity="0.8"/>
+          <ellipse cx="300" cy="700" rx="110" ry="85" fill="url(#grassPatch)" opacity="0.75"/>
+
+          <!-- Dirt and rock patches -->
+          <ellipse cx="400" cy="150" rx="60" ry="40" fill="url(#dirtPatch)" opacity="0.6"/>
+          <ellipse cx="150" cy="600" rx="50" ry="35" fill="url(#dirtPatch)" opacity="0.7"/>
+          <ellipse cx="700" cy="350" rx="45" ry="30" fill="url(#dirtPatch)" opacity="0.5"/>
+
+          <!-- Small grass tufts -->
+          <circle cx="180" cy="250" r="8" fill="#6bb26b" opacity="0.9"/>
+          <circle cx="350" cy="320" r="6" fill="#6bb26b" opacity="0.8"/>
+          <circle cx="650" cy="180" r="7" fill="#6bb26b" opacity="0.85"/>
+          <circle cx="750" cy="450" r="9" fill="#6bb26b" opacity="0.9"/>
+          <circle cx="280" cy="650" r="5" fill="#6bb26b" opacity="0.8"/>
+          <circle cx="850" cy="600" r="6" fill="#6bb26b" opacity="0.85"/>
+
+          <!-- Small rocks and pebbles -->
+          <circle cx="120" cy="400" r="4" fill="#606060" opacity="0.7"/>
+          <circle cx="480" cy="280" r="3" fill="#707070" opacity="0.6"/>
+          <circle cx="720" cy="720" r="5" fill="#656565" opacity="0.8"/>
+          <circle cx="350" cy="500" r="3" fill="#606060" opacity="0.7"/>
+
+          <!-- Natural wear patterns -->
+          <path d="M100 200 Q300 180 500 200 Q700 220 900 200" stroke="#4a5f4a" stroke-width="3" fill="none" opacity="0.3"/>
+          <path d="M150 600 Q400 580 650 600 Q800 620 950 600" stroke="#4a5f4a" stroke-width="2" fill="none" opacity="0.4"/>
         </svg>
       `),
       ),
-      color: new THREE.Color(0.3, 0.6, 0.3),
+      color: new THREE.Color(0.4, 0.7, 0.4),
       transparent: true,
       opacity: theme === "light" ? 1.0 : 0.0,
+      roughness: 0.8,
     });
   }, [theme]);
 
@@ -473,31 +545,40 @@ function EarthSurface() {
 
   return (
     <>
-      {/* Ground Plane */}
+      {/* Main Ground Plane - More realistic positioning */}
       <mesh
         ref={groundRef}
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, -2, 0]}
+        position={[0, 0, 0]}
         material={groundMaterial}
       >
-        <planeGeometry args={[200, 200]} />
+        <planeGeometry args={[300, 300, 32, 32]} />
       </mesh>
 
-      {/* Horizon Ring */}
-      <mesh ref={horizonRef} position={[0, 20, 0]} material={horizonMaterial}>
-        <cylinderGeometry args={[80, 80, 20, 32, 1, true]} />
+      {/* Detailed Ground Area around camera */}
+      <mesh
+        ref={detailGroundRef}
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 0.1, 0]}
+        material={groundMaterial}
+      >
+        <planeGeometry args={[50, 50, 16, 16]} />
+      </mesh>
+
+      {/* Enhanced Horizon Ring */}
+      <mesh ref={horizonRef} position={[0, 25, 0]} material={horizonMaterial}>
+        <cylinderGeometry args={[120, 120, 30, 64, 1, true]} />
       </mesh>
     </>
   );
 }
 
 // Realistic Earth Component
-function Earth() {
+function Earth({ theme }: { theme: string }) {
   const earthRef = useRef<THREE.Mesh>(null);
   const cloudsRef = useRef<THREE.Mesh>(null);
   const atmosphereRef = useRef<THREE.Mesh>(null);
   const nightLightsRef = useRef<THREE.Mesh>(null);
-  const { theme } = useTheme();
 
   // Create highly realistic Earth materials
   const earthMaterial = useMemo(() => {
@@ -733,9 +814,8 @@ function Earth() {
 }
 
 // Realistic Moon Component
-function Moon() {
+function Moon({ theme }: { theme: string }) {
   const moonRef = useRef<THREE.Mesh>(null);
-  const { theme } = useTheme();
 
   const moonMaterial = useMemo(() => {
     return new THREE.MeshPhongMaterial({
@@ -795,13 +875,12 @@ function Moon() {
 }
 
 // Highly Realistic Sun Component
-function Sun() {
+function Sun({ theme }: { theme: string }) {
   const sunRef = useRef<THREE.Mesh>(null);
   const coronaRef = useRef<THREE.Mesh>(null);
   const flareRef1 = useRef<THREE.Mesh>(null);
   const flareRef2 = useRef<THREE.Mesh>(null);
   const chromosphereRef = useRef<THREE.Mesh>(null);
-  const { theme } = useTheme();
 
   // Realistic Sun surface material
   const sunMaterial = useMemo(() => {
@@ -1008,11 +1087,13 @@ function Sun() {
   );
 }
 
-// Meteor Shower Component (keeping spheres only)
-function MeteorShower() {
-  const { theme } = useTheme();
+// Meteor Shower Component (only in dark theme)
+function MeteorShower({ theme }: { theme: string }) {
+  // No meteors in light theme at all
+  if (theme === "light") return null;
+
   const meteors = useMemo(() => {
-    return Array.from({ length: theme === "light" ? 5 : 15 }, (_, i) => ({
+    return Array.from({ length: 15 }, (_, i) => ({
       id: i,
       startPosition: [
         (Math.random() - 0.5) * 100,
@@ -1093,9 +1174,8 @@ function Meteor({
   );
 }
 
-// Interactive Asteroids (keeping only spherical shapes)
-function InteractiveAsteroids() {
-  const { theme } = useTheme();
+// Realistic Interactive Asteroids with varied shapes
+function InteractiveAsteroids({ theme }: { theme: string }) {
   const asteroids = useMemo(() => {
     return Array.from({ length: theme === "light" ? 4 : 12 }, (_, i) => ({
       id: i,
@@ -1108,62 +1188,266 @@ function InteractiveAsteroids() {
       rotationSpeed: (Math.random() - 0.5) * 0.02,
       orbitRadius: 2 + Math.random() * 4,
       orbitSpeed: 0.001 + Math.random() * 0.005,
+      asteroidType: Math.floor(Math.random() * 4), // 4 different asteroid types
+      colorVariant: Math.random(), // Color variation
     }));
   }, [theme]);
 
   return (
     <>
       {asteroids.map((asteroid) => (
-        <InteractiveAsteroid
+        <RealisticAsteroid
           key={asteroid.id}
           position={asteroid.position}
           size={asteroid.size}
           rotationSpeed={asteroid.rotationSpeed}
           orbitRadius={asteroid.orbitRadius}
           orbitSpeed={asteroid.orbitSpeed}
+          asteroidType={asteroid.asteroidType}
+          colorVariant={asteroid.colorVariant}
         />
       ))}
     </>
   );
 }
 
-function InteractiveAsteroid({
+// Realistic Asteroid Component with varied irregular shapes
+function RealisticAsteroid({
   position,
   size,
   rotationSpeed,
   orbitRadius,
   orbitSpeed,
+  asteroidType,
+  colorVariant,
 }: {
   position: [number, number, number];
   size: number;
   rotationSpeed: number;
   orbitRadius: number;
   orbitSpeed: number;
+  asteroidType: number;
+  colorVariant: number;
 }) {
-  const asteroidRef = useRef<THREE.Mesh>(null);
+  const asteroidGroupRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
   const { camera, mouse } = useThree();
 
   const { scale } = useSpring({
-    scale: hovered ? 1.3 : 1,
+    scale: hovered ? 1.2 : 1,
     config: { tension: 300, friction: 10 },
   });
 
+  // Generate realistic asteroid materials with proper bright colors
+  const asteroidMaterial = useMemo(() => {
+    const baseColors = [
+      new THREE.Color(0.7, 0.5, 0.3), // Rocky brown - much brighter
+      new THREE.Color(0.8, 0.6, 0.4), // Sandy brown - brighter
+      new THREE.Color(0.6, 0.6, 0.7), // Bluish gray - brighter
+      new THREE.Color(0.9, 0.7, 0.5), // Light tan - much brighter
+    ];
+
+    const baseColor = baseColors[asteroidType];
+    const colorAdjustment = (colorVariant - 0.5) * 0.3; // Increased variation
+
+    return new THREE.MeshStandardMaterial({
+      color: new THREE.Color(
+        Math.max(0.4, Math.min(1.0, baseColor.r + colorAdjustment)), // Minimum 0.4 brightness
+        Math.max(0.4, Math.min(1.0, baseColor.g + colorAdjustment)),
+        Math.max(0.4, Math.min(1.0, baseColor.b + colorAdjustment)),
+      ),
+      roughness: 0.7 + Math.random() * 0.2, // Less rough for better light reflection
+      metalness: 0.1 + Math.random() * 0.2, // More metallic for better visibility
+      emissive: hovered
+        ? new THREE.Color(0.3, 0.2, 0.1)
+        : new THREE.Color(0.05, 0.05, 0.05), // Always slight emissive
+      emissiveIntensity: hovered ? 0.4 : 0.1,
+      // Remove the texture map that was making it too dark
+    });
+  }, [asteroidType, colorVariant, hovered]);
+
+  // Create variations of the base material for different parts
+  const createVariationMaterial = (index: number) => {
+    const baseColors = [
+      new THREE.Color(0.7, 0.5, 0.3), // Rocky brown
+      new THREE.Color(0.8, 0.6, 0.4), // Sandy brown
+      new THREE.Color(0.6, 0.6, 0.7), // Bluish gray
+      new THREE.Color(0.9, 0.7, 0.5), // Light tan
+    ];
+
+    const baseColor = baseColors[asteroidType];
+    const variation = index * 0.1 + (colorVariant - 0.5) * 0.2;
+
+    return new THREE.MeshStandardMaterial({
+      color: new THREE.Color(
+        Math.max(0.35, Math.min(0.95, baseColor.r + variation)),
+        Math.max(0.35, Math.min(0.95, baseColor.g + variation)),
+        Math.max(0.35, Math.min(0.95, baseColor.b + variation)),
+      ),
+      roughness: 0.6 + Math.random() * 0.3,
+      metalness: 0.08 + Math.random() * 0.15,
+      emissive: hovered
+        ? new THREE.Color(0.2, 0.15, 0.1)
+        : new THREE.Color(0.03, 0.03, 0.03),
+      emissiveIntensity: hovered ? 0.3 : 0.05,
+    });
+  };
+
+  // Create realistic irregular asteroid geometry
+  const createAsteroidGeometry = (type: number, baseSize: number) => {
+    const geometries: JSX.Element[] = [];
+
+    switch (type) {
+      case 0: // Elongated rocky asteroid
+        geometries.push(
+          <mesh key="main" material={asteroidMaterial}>
+            <boxGeometry
+              args={[baseSize * 1.8, baseSize * 0.9, baseSize * 1.2]}
+            />
+          </mesh>,
+        );
+        geometries.push(
+          <mesh
+            key="chunk1"
+            position={[baseSize * 0.6, baseSize * 0.3, -baseSize * 0.2]}
+            material={createVariationMaterial(1)}
+          >
+            <boxGeometry
+              args={[baseSize * 0.5, baseSize * 0.7, baseSize * 0.6]}
+            />
+          </mesh>,
+        );
+        geometries.push(
+          <mesh
+            key="chunk2"
+            position={[-baseSize * 0.4, -baseSize * 0.2, baseSize * 0.4]}
+            material={createVariationMaterial(2)}
+          >
+            <boxGeometry
+              args={[baseSize * 0.6, baseSize * 0.4, baseSize * 0.5]}
+            />
+          </mesh>,
+        );
+        break;
+
+      case 1: // Irregular chunky asteroid
+        geometries.push(
+          <mesh key="main" material={asteroidMaterial}>
+            <dodecahedronGeometry args={[baseSize]} />
+          </mesh>,
+        );
+        geometries.push(
+          <mesh
+            key="protrusion1"
+            position={[baseSize * 0.7, 0, 0]}
+            material={createVariationMaterial(1)}
+          >
+            <octahedronGeometry args={[baseSize * 0.4]} />
+          </mesh>,
+        );
+        geometries.push(
+          <mesh
+            key="protrusion2"
+            position={[-baseSize * 0.3, baseSize * 0.6, 0]}
+            material={createVariationMaterial(2)}
+          >
+            <tetrahedronGeometry args={[baseSize * 0.3]} />
+          </mesh>,
+        );
+        geometries.push(
+          <mesh
+            key="protrusion3"
+            position={[0, -baseSize * 0.4, baseSize * 0.5]}
+            material={createVariationMaterial(3)}
+          >
+            <octahedronGeometry args={[baseSize * 0.35]} />
+          </mesh>,
+        );
+        break;
+
+      case 2: // Flat fragmented asteroid
+        geometries.push(
+          <mesh key="main" material={asteroidMaterial}>
+            <cylinderGeometry
+              args={[baseSize * 1.2, baseSize * 0.8, baseSize * 0.6, 8]}
+            />
+          </mesh>,
+        );
+        geometries.push(
+          <mesh
+            key="fragment1"
+            position={[baseSize * 0.8, baseSize * 0.1, baseSize * 0.3]}
+            rotation={[0.5, 0.3, 0.2]}
+            material={createVariationMaterial(1)}
+          >
+            <boxGeometry
+              args={[baseSize * 0.4, baseSize * 0.3, baseSize * 0.2]}
+            />
+          </mesh>,
+        );
+        geometries.push(
+          <mesh
+            key="fragment2"
+            position={[-baseSize * 0.6, -baseSize * 0.2, -baseSize * 0.4]}
+            rotation={[0.3, 0.8, 0.4]}
+            material={createVariationMaterial(2)}
+          >
+            <boxGeometry
+              args={[baseSize * 0.3, baseSize * 0.5, baseSize * 0.3]}
+            />
+          </mesh>,
+        );
+        break;
+
+      case 3: // Complex multi-chunk asteroid
+        geometries.push(
+          <mesh key="core" material={asteroidMaterial}>
+            <icosahedronGeometry args={[baseSize * 0.8]} />
+          </mesh>,
+        );
+        for (let i = 0; i < 6; i++) {
+          const angle = (i / 6) * Math.PI * 2;
+          const radius = baseSize * (0.8 + Math.random() * 0.4);
+          const height = baseSize * (0.3 + Math.random() * 0.4);
+          geometries.push(
+            <mesh
+              key={`chunk${i}`}
+              position={[
+                Math.cos(angle) * radius,
+                (Math.random() - 0.5) * baseSize * 0.5,
+                Math.sin(angle) * radius,
+              ]}
+              rotation={[Math.random(), Math.random(), Math.random()]}
+              material={createVariationMaterial(i + 1)}
+            >
+              <coneGeometry args={[baseSize * 0.2, height, 6]} />
+            </mesh>,
+          );
+        }
+        break;
+    }
+
+    return geometries;
+  };
+
   useFrame((state) => {
-    if (asteroidRef.current) {
+    if (asteroidGroupRef.current) {
       const time = state.clock.elapsedTime;
 
-      asteroidRef.current.position.x =
+      asteroidGroupRef.current.position.x =
         position[0] + Math.cos(time * orbitSpeed) * orbitRadius;
-      asteroidRef.current.position.z =
+      asteroidGroupRef.current.position.z =
         position[2] + Math.sin(time * orbitSpeed) * orbitRadius;
 
-      asteroidRef.current.rotation.x += rotationSpeed;
-      asteroidRef.current.rotation.y += rotationSpeed * 0.7;
+      asteroidGroupRef.current.rotation.x += rotationSpeed;
+      asteroidGroupRef.current.rotation.y += rotationSpeed * 0.7;
+      asteroidGroupRef.current.rotation.z += rotationSpeed * 0.3;
 
       const mouseVector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
       mouseVector.unproject(camera);
-      const distance = camera.position.distanceTo(asteroidRef.current.position);
+      const distance = camera.position.distanceTo(
+        asteroidGroupRef.current.position,
+      );
 
       if (distance < 15) {
         setHovered(true);
@@ -1174,33 +1458,20 @@ function InteractiveAsteroid({
   });
 
   return (
-    <animated.mesh
-      ref={asteroidRef}
+    <animated.group
+      ref={asteroidGroupRef}
       position={position}
       scale={scale}
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
-      <sphereGeometry args={[size, 12, 12]} />
-      <meshStandardMaterial
-        color={
-          hovered
-            ? new THREE.Color(0.8, 0.6, 0.3)
-            : new THREE.Color(0.4, 0.4, 0.4)
-        }
-        roughness={0.9}
-        metalness={0.1}
-        emissive={
-          hovered ? new THREE.Color(0.2, 0.1, 0) : new THREE.Color(0, 0, 0)
-        }
-      />
-    </animated.mesh>
+      {createAsteroidGeometry(asteroidType, size)}
+    </animated.group>
   );
 }
 
 // Particle Dust System
-function SpaceDust() {
-  const { theme } = useTheme();
+function SpaceDust({ theme }: { theme: string }) {
   const points = useRef<THREE.Points>(null);
 
   const particlesPosition = useMemo(() => {
@@ -1240,10 +1511,44 @@ function SpaceDust() {
   );
 }
 
+// Transition Gradient Effect for Earth to Space
+function TransitionGradient() {
+  const { theme, pendingTheme, isTransitioning } = useTheme();
+  const [gradientOpacity, setGradientOpacity] = useState(0);
+
+  useEffect(() => {
+    if (isTransitioning && pendingTheme === "dark") {
+      // Show gradient during transition from Earth to space
+      setGradientOpacity(0.8);
+      const timeout = setTimeout(() => setGradientOpacity(0), 3000);
+      return () => clearTimeout(timeout);
+    } else {
+      setGradientOpacity(0);
+    }
+  }, [isTransitioning, pendingTheme]);
+
+  if (!isTransitioning || pendingTheme !== "dark") return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-40 pointer-events-none transition-opacity duration-3000"
+      style={{
+        opacity: gradientOpacity,
+        background: `radial-gradient(circle at center,
+          rgba(0, 0, 0, 0) 0%,
+          rgba(0, 20, 40, 0.3) 20%,
+          rgba(0, 10, 30, 0.6) 40%,
+          rgba(0, 5, 20, 0.8) 60%,
+          rgba(0, 0, 10, 0.9) 80%,
+          rgba(0, 0, 0, 1) 100%)`,
+      }}
+    />
+  );
+}
+
 // Dynamic Lighting System
-function DynamicLighting() {
+function DynamicLighting({ theme }: { theme: string }) {
   const { mouse } = useThree();
-  const { theme } = useTheme();
   const lightRef = useRef<THREE.PointLight>(null);
 
   useFrame(() => {
@@ -1281,7 +1586,8 @@ function DynamicLighting() {
 
 // Main 3D Space Scene
 function SpaceScene() {
-  const { theme } = useTheme();
+  const { theme, pendingTheme, isTransitioning, cameraReachedGround } =
+    useTheme();
 
   const backgroundGradient =
     theme === "light"
@@ -1290,17 +1596,23 @@ function SpaceScene() {
 
   return (
     <div className="fixed inset-0 z-0">
+      <TransitionGradient />
       <Canvas
         camera={{ position: [0, 0, 20], fov: 75 }}
         style={{ background: backgroundGradient }}
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: true }}
       >
-        <CameraController />
-        <DynamicLighting />
+        <CameraController
+          theme={theme}
+          pendingTheme={pendingTheme}
+          isTransitioning={isTransitioning}
+          cameraReachedGround={cameraReachedGround}
+        />
+        <DynamicLighting theme={theme} />
 
         {/* Atmospheric Sky for Light Theme */}
-        <AtmosphericSky />
+        <AtmosphericSky theme={theme} />
 
         {/* Enhanced Stars */}
         <Stars
@@ -1314,18 +1626,18 @@ function SpaceScene() {
         />
 
         {/* 3D Objects */}
-        <Earth />
-        <Moon />
-        <Sun />
-        <MeteorShower />
-        <InteractiveAsteroids />
-        <SpaceDust />
+        <Earth theme={theme} />
+        <Moon theme={theme} />
+        <Sun theme={theme} />
+        <MeteorShower theme={theme} />
+        <InteractiveAsteroids theme={theme} />
+        <SpaceDust theme={theme} />
 
         {/* Realistic 3D Clouds for Light Theme */}
-        <RealisticClouds />
+        <RealisticClouds theme={theme} />
 
         {/* Earth Surface Elements */}
-        <EarthSurface />
+        <EarthSurface theme={theme} />
 
         {/* Additional Effects */}
         <DreiSparkles
@@ -1471,10 +1783,10 @@ export default function Index() {
       <div className="relative z-20">
         {/* Professional Navbar */}
         <nav
-          className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl transition-all duration-500 ${
+          className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-2xl transition-all duration-500 ${
             theme === "light"
-              ? "bg-white/40 border-gray-200/40"
-              : "bg-black/30 border-white/10"
+              ? "bg-white/20 border-gray-200/20"
+              : "bg-black/15 border-white/5"
           } border-b`}
         >
           <div className="container mx-auto px-6 py-4">
@@ -1485,19 +1797,10 @@ export default function Index() {
                   <img
                     src="https://cdn.builder.io/api/v1/image/assets%2F61bb2c2b59304a3e8ff6f05c93913451%2Fb4dbc5f8d01c47418626106a29f0d54b?format=webp&width=800"
                     alt="Virtual Dash Logo"
-                    className="w-10 h-10 rounded-lg object-cover"
+                    className="w-12 h-12 rounded-lg object-cover"
                   />
                   <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg blur opacity-30"></div>
                 </div>
-                <h1
-                  className={`text-2xl font-bold bg-gradient-to-r ${
-                    theme === "light"
-                      ? "from-gray-800 to-blue-600"
-                      : "from-white to-blue-200"
-                  } bg-clip-text text-transparent`}
-                >
-                  Virtual Dash
-                </h1>
               </div>
 
               {/* Navigation Buttons */}
@@ -1537,10 +1840,44 @@ export default function Index() {
         <div className="pt-24 pb-12 md:pt-32 md:pb-20">
           <div className="container mx-auto px-6 text-center">
             <div className="max-w-5xl mx-auto">
-              {/* Main Title */}
+              {/* Main Title with Animated Gradient */}
               <h1 className="text-5xl md:text-7xl font-bold mb-8">
-                <span className="block bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
-                  Virtual Dash
+                <span className="block relative overflow-hidden">
+                  <span
+                    className="bg-gradient-to-r from-cyan-400 via-blue-500 via-purple-600 via-pink-500 via-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent animate-gradient-x bg-[length:400%_400%] hover:animate-pulse transition-all duration-300 cursor-default"
+                    style={{
+                      backgroundImage:
+                        "linear-gradient(-45deg, #22d3ee, #3b82f6, #8b5cf6, #ec4899, #f59e0b, #22d3ee, #3b82f6, #8b5cf6)",
+                      backgroundSize: "400% 400%",
+                      animation:
+                        "gradientShift 6s ease infinite, textGlow 3s ease-in-out infinite",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.animation =
+                        "gradientShift 1s ease infinite, textGlow 0.5s ease-in-out infinite, textPulse 0.3s ease-in-out";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.animation =
+                        "gradientShift 6s ease infinite, textGlow 3s ease-in-out infinite";
+                    }}
+                  >
+                    Virtual Dash
+                  </span>
+                  {/* Floating particles effect */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    {[...Array(6)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="absolute w-1 h-1 bg-gradient-to-r from-cyan-400 to-purple-600 rounded-full opacity-60 animate-float"
+                        style={{
+                          left: `${20 + i * 15}%`,
+                          top: `${30 + (i % 2) * 40}%`,
+                          animationDelay: `${i * 0.5}s`,
+                          animationDuration: "4s",
+                        }}
+                      />
+                    ))}
+                  </div>
                 </span>
               </h1>
 
