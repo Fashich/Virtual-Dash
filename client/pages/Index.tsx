@@ -1277,6 +1277,41 @@ function SpaceDust() {
   );
 }
 
+// Transition Gradient Effect for Earth to Space
+function TransitionGradient() {
+  const { theme, pendingTheme, isTransitioning } = useTheme();
+  const [gradientOpacity, setGradientOpacity] = useState(0);
+
+  useEffect(() => {
+    if (isTransitioning && pendingTheme === "dark") {
+      // Show gradient during transition from Earth to space
+      setGradientOpacity(0.8);
+      const timeout = setTimeout(() => setGradientOpacity(0), 3000);
+      return () => clearTimeout(timeout);
+    } else {
+      setGradientOpacity(0);
+    }
+  }, [isTransitioning, pendingTheme]);
+
+  if (!isTransitioning || pendingTheme !== "dark") return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-40 pointer-events-none transition-opacity duration-3000"
+      style={{
+        opacity: gradientOpacity,
+        background: `radial-gradient(circle at center,
+          rgba(0, 0, 0, 0) 0%,
+          rgba(0, 20, 40, 0.3) 20%,
+          rgba(0, 10, 30, 0.6) 40%,
+          rgba(0, 5, 20, 0.8) 60%,
+          rgba(0, 0, 10, 0.9) 80%,
+          rgba(0, 0, 0, 1) 100%)`
+      }}
+    />
+  );
+}
+
 // Dynamic Lighting System
 function DynamicLighting() {
   const { mouse } = useThree();
