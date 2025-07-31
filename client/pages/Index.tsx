@@ -42,7 +42,17 @@ import {
 } from "lucide-react";
 
 // Professional Multi-Stage Camera Controller
-function CameraController({ theme, pendingTheme, isTransitioning, cameraReachedGround }: { theme: string; pendingTheme: string | null; isTransitioning: boolean; cameraReachedGround: () => void }) {
+function CameraController({
+  theme,
+  pendingTheme,
+  isTransitioning,
+  cameraReachedGround,
+}: {
+  theme: string;
+  pendingTheme: string | null;
+  isTransitioning: boolean;
+  cameraReachedGround: () => void;
+}) {
   const { camera } = useThree();
   const [cameraTransitioning, setCameraTransitioning] = useState(false);
   const [animationStage, setAnimationStage] = useState(0);
@@ -1079,7 +1089,6 @@ function Sun({ theme }: { theme: string }) {
 
 // Meteor Shower Component (only in dark theme)
 function MeteorShower({ theme }: { theme: string }) {
-
   // No meteors in light theme at all
   if (theme === "light") return null;
 
@@ -1577,7 +1586,8 @@ function DynamicLighting({ theme }: { theme: string }) {
 
 // Main 3D Space Scene
 function SpaceScene() {
-  const { theme, pendingTheme, isTransitioning, cameraReachedGround } = useTheme();
+  const { theme, pendingTheme, isTransitioning, cameraReachedGround } =
+    useTheme();
 
   const backgroundGradient =
     theme === "light"
@@ -1593,7 +1603,12 @@ function SpaceScene() {
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: true }}
       >
-        <CameraController theme={theme} pendingTheme={pendingTheme} isTransitioning={isTransitioning} cameraReachedGround={cameraReachedGround} />
+        <CameraController
+          theme={theme}
+          pendingTheme={pendingTheme}
+          isTransitioning={isTransitioning}
+          cameraReachedGround={cameraReachedGround}
+        />
         <DynamicLighting theme={theme} />
 
         {/* Atmospheric Sky for Light Theme */}
