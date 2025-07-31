@@ -42,9 +42,8 @@ import {
 } from "lucide-react";
 
 // Professional Multi-Stage Camera Controller
-function CameraController() {
+function CameraController({ theme, pendingTheme, isTransitioning }: { theme: string; pendingTheme: string | null; isTransitioning: boolean }) {
   const { camera } = useThree();
-  const { theme, pendingTheme, cameraReachedGround } = useTheme();
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [animationStage, setAnimationStage] = useState(0);
   const [hasReachedGround, setHasReachedGround] = useState(false);
@@ -239,8 +238,7 @@ function CameraController() {
 }
 
 // Realistic 3D Clouds positioned for ground-up view
-function RealisticClouds() {
-  const { theme } = useTheme();
+function RealisticClouds({ theme }: { theme: string }) {
   const cloudsGroupRef = useRef<THREE.Group>(null);
 
   // Position clouds above for sky view
@@ -355,8 +353,7 @@ function RealisticCloud({
 }
 
 // Enhanced Atmospheric Sky for Ground View
-function AtmosphericSky() {
-  const { theme } = useTheme();
+function AtmosphericSky({ theme }: { theme: string }) {
   const skyRef = useRef<THREE.Mesh>(null);
   const sunGlowRef = useRef<THREE.Mesh>(null);
 
@@ -426,8 +423,7 @@ function AtmosphericSky() {
 }
 
 // Professional Realistic Earth Surface
-function EarthSurface() {
-  const { theme } = useTheme();
+function EarthSurface({ theme }: { theme: string }) {
   const groundRef = useRef<THREE.Mesh>(null);
   const horizonRef = useRef<THREE.Mesh>(null);
   const detailGroundRef = useRef<THREE.Mesh>(null);
@@ -568,12 +564,11 @@ function EarthSurface() {
 }
 
 // Realistic Earth Component
-function Earth() {
+function Earth({ theme }: { theme: string }) {
   const earthRef = useRef<THREE.Mesh>(null);
   const cloudsRef = useRef<THREE.Mesh>(null);
   const atmosphereRef = useRef<THREE.Mesh>(null);
   const nightLightsRef = useRef<THREE.Mesh>(null);
-  const { theme } = useTheme();
 
   // Create highly realistic Earth materials
   const earthMaterial = useMemo(() => {
