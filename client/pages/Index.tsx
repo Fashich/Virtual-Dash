@@ -1235,7 +1235,7 @@ function RealisticAsteroid({
 
   const { scale } = useSpring({
     scale: hovered ? 1.2 : 1,
-    config: { tension:300, friction: 10 },
+    config: { tension: 300, friction: 10 },
   });
 
   // Generate realistic asteroid materials with proper bright colors
@@ -1254,11 +1254,13 @@ function RealisticAsteroid({
       color: new THREE.Color(
         Math.max(0.4, Math.min(1.0, baseColor.r + colorAdjustment)), // Minimum 0.4 brightness
         Math.max(0.4, Math.min(1.0, baseColor.g + colorAdjustment)),
-        Math.max(0.4, Math.min(1.0, baseColor.b + colorAdjustment))
+        Math.max(0.4, Math.min(1.0, baseColor.b + colorAdjustment)),
       ),
       roughness: 0.7 + Math.random() * 0.2, // Less rough for better light reflection
       metalness: 0.1 + Math.random() * 0.2, // More metallic for better visibility
-      emissive: hovered ? new THREE.Color(0.3, 0.2, 0.1) : new THREE.Color(0.05, 0.05, 0.05), // Always slight emissive
+      emissive: hovered
+        ? new THREE.Color(0.3, 0.2, 0.1)
+        : new THREE.Color(0.05, 0.05, 0.05), // Always slight emissive
       emissiveIntensity: hovered ? 0.4 : 0.1,
       // Remove the texture map that was making it too dark
     });
@@ -1274,17 +1276,19 @@ function RealisticAsteroid({
     ];
 
     const baseColor = baseColors[asteroidType];
-    const variation = (index * 0.1) + (colorVariant - 0.5) * 0.2;
+    const variation = index * 0.1 + (colorVariant - 0.5) * 0.2;
 
     return new THREE.MeshStandardMaterial({
       color: new THREE.Color(
         Math.max(0.35, Math.min(0.95, baseColor.r + variation)),
         Math.max(0.35, Math.min(0.95, baseColor.g + variation)),
-        Math.max(0.35, Math.min(0.95, baseColor.b + variation))
+        Math.max(0.35, Math.min(0.95, baseColor.b + variation)),
       ),
       roughness: 0.6 + Math.random() * 0.3,
       metalness: 0.08 + Math.random() * 0.15,
-      emissive: hovered ? new THREE.Color(0.2, 0.15, 0.1) : new THREE.Color(0.03, 0.03, 0.03),
+      emissive: hovered
+        ? new THREE.Color(0.2, 0.15, 0.1)
+        : new THREE.Color(0.03, 0.03, 0.03),
       emissiveIntensity: hovered ? 0.3 : 0.05,
     });
   };
@@ -1297,18 +1301,32 @@ function RealisticAsteroid({
       case 0: // Elongated rocky asteroid
         geometries.push(
           <mesh key="main" material={asteroidMaterial}>
-            <boxGeometry args={[baseSize * 1.8, baseSize * 0.9, baseSize * 1.2]} />
-          </mesh>
+            <boxGeometry
+              args={[baseSize * 1.8, baseSize * 0.9, baseSize * 1.2]}
+            />
+          </mesh>,
         );
         geometries.push(
-          <mesh key="chunk1" position={[baseSize * 0.6, baseSize * 0.3, -baseSize * 0.2]} material={createVariationMaterial(1)}>
-            <boxGeometry args={[baseSize * 0.5, baseSize * 0.7, baseSize * 0.6]} />
-          </mesh>
+          <mesh
+            key="chunk1"
+            position={[baseSize * 0.6, baseSize * 0.3, -baseSize * 0.2]}
+            material={createVariationMaterial(1)}
+          >
+            <boxGeometry
+              args={[baseSize * 0.5, baseSize * 0.7, baseSize * 0.6]}
+            />
+          </mesh>,
         );
         geometries.push(
-          <mesh key="chunk2" position={[-baseSize * 0.4, -baseSize * 0.2, baseSize * 0.4]} material={createVariationMaterial(2)}>
-            <boxGeometry args={[baseSize * 0.6, baseSize * 0.4, baseSize * 0.5]} />
-          </mesh>
+          <mesh
+            key="chunk2"
+            position={[-baseSize * 0.4, -baseSize * 0.2, baseSize * 0.4]}
+            material={createVariationMaterial(2)}
+          >
+            <boxGeometry
+              args={[baseSize * 0.6, baseSize * 0.4, baseSize * 0.5]}
+            />
+          </mesh>,
         );
         break;
 
@@ -1316,40 +1334,68 @@ function RealisticAsteroid({
         geometries.push(
           <mesh key="main" material={asteroidMaterial}>
             <dodecahedronGeometry args={[baseSize]} />
-          </mesh>
+          </mesh>,
         );
         geometries.push(
-          <mesh key="protrusion1" position={[baseSize * 0.7, 0, 0]} material={createVariationMaterial(1)}>
+          <mesh
+            key="protrusion1"
+            position={[baseSize * 0.7, 0, 0]}
+            material={createVariationMaterial(1)}
+          >
             <octahedronGeometry args={[baseSize * 0.4]} />
-          </mesh>
+          </mesh>,
         );
         geometries.push(
-          <mesh key="protrusion2" position={[-baseSize * 0.3, baseSize * 0.6, 0]} material={createVariationMaterial(2)}>
+          <mesh
+            key="protrusion2"
+            position={[-baseSize * 0.3, baseSize * 0.6, 0]}
+            material={createVariationMaterial(2)}
+          >
             <tetrahedronGeometry args={[baseSize * 0.3]} />
-          </mesh>
+          </mesh>,
         );
         geometries.push(
-          <mesh key="protrusion3" position={[0, -baseSize * 0.4, baseSize * 0.5]} material={createVariationMaterial(3)}>
+          <mesh
+            key="protrusion3"
+            position={[0, -baseSize * 0.4, baseSize * 0.5]}
+            material={createVariationMaterial(3)}
+          >
             <octahedronGeometry args={[baseSize * 0.35]} />
-          </mesh>
+          </mesh>,
         );
         break;
 
       case 2: // Flat fragmented asteroid
         geometries.push(
           <mesh key="main" material={asteroidMaterial}>
-            <cylinderGeometry args={[baseSize * 1.2, baseSize * 0.8, baseSize * 0.6, 8]} />
-          </mesh>
+            <cylinderGeometry
+              args={[baseSize * 1.2, baseSize * 0.8, baseSize * 0.6, 8]}
+            />
+          </mesh>,
         );
         geometries.push(
-          <mesh key="fragment1" position={[baseSize * 0.8, baseSize * 0.1, baseSize * 0.3]} rotation={[0.5, 0.3, 0.2]} material={createVariationMaterial(1)}>
-            <boxGeometry args={[baseSize * 0.4, baseSize * 0.3, baseSize * 0.2]} />
-          </mesh>
+          <mesh
+            key="fragment1"
+            position={[baseSize * 0.8, baseSize * 0.1, baseSize * 0.3]}
+            rotation={[0.5, 0.3, 0.2]}
+            material={createVariationMaterial(1)}
+          >
+            <boxGeometry
+              args={[baseSize * 0.4, baseSize * 0.3, baseSize * 0.2]}
+            />
+          </mesh>,
         );
         geometries.push(
-          <mesh key="fragment2" position={[-baseSize * 0.6, -baseSize * 0.2, -baseSize * 0.4]} rotation={[0.3, 0.8, 0.4]} material={createVariationMaterial(2)}>
-            <boxGeometry args={[baseSize * 0.3, baseSize * 0.5, baseSize * 0.3]} />
-          </mesh>
+          <mesh
+            key="fragment2"
+            position={[-baseSize * 0.6, -baseSize * 0.2, -baseSize * 0.4]}
+            rotation={[0.3, 0.8, 0.4]}
+            material={createVariationMaterial(2)}
+          >
+            <boxGeometry
+              args={[baseSize * 0.3, baseSize * 0.5, baseSize * 0.3]}
+            />
+          </mesh>,
         );
         break;
 
@@ -1357,7 +1403,7 @@ function RealisticAsteroid({
         geometries.push(
           <mesh key="core" material={asteroidMaterial}>
             <icosahedronGeometry args={[baseSize * 0.8]} />
-          </mesh>
+          </mesh>,
         );
         for (let i = 0; i < 6; i++) {
           const angle = (i / 6) * Math.PI * 2;
@@ -1369,13 +1415,13 @@ function RealisticAsteroid({
               position={[
                 Math.cos(angle) * radius,
                 (Math.random() - 0.5) * baseSize * 0.5,
-                Math.sin(angle) * radius
+                Math.sin(angle) * radius,
               ]}
               rotation={[Math.random(), Math.random(), Math.random()]}
               material={createVariationMaterial(i + 1)}
             >
               <coneGeometry args={[baseSize * 0.2, height, 6]} />
-            </mesh>
+            </mesh>,
           );
         }
         break;
@@ -1399,7 +1445,9 @@ function RealisticAsteroid({
 
       const mouseVector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
       mouseVector.unproject(camera);
-      const distance = camera.position.distanceTo(asteroidGroupRef.current.position);
+      const distance = camera.position.distanceTo(
+        asteroidGroupRef.current.position,
+      );
 
       if (distance < 15) {
         setHovered(true);
@@ -1493,7 +1541,7 @@ function TransitionGradient() {
           rgba(0, 10, 30, 0.6) 40%,
           rgba(0, 5, 20, 0.8) 60%,
           rgba(0, 0, 10, 0.9) 80%,
-          rgba(0, 0, 0, 1) 100%)`
+          rgba(0, 0, 0, 1) 100%)`,
       }}
     />
   );
@@ -1794,15 +1842,19 @@ export default function Index() {
                   <span
                     className="bg-gradient-to-r from-cyan-400 via-blue-500 via-purple-600 via-pink-500 via-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent animate-gradient-x bg-[length:400%_400%] hover:animate-pulse transition-all duration-300 cursor-default"
                     style={{
-                      backgroundImage: 'linear-gradient(-45deg, #22d3ee, #3b82f6, #8b5cf6, #ec4899, #f59e0b, #22d3ee, #3b82f6, #8b5cf6)',
-                      backgroundSize: '400% 400%',
-                      animation: 'gradientShift 6s ease infinite, textGlow 3s ease-in-out infinite'
+                      backgroundImage:
+                        "linear-gradient(-45deg, #22d3ee, #3b82f6, #8b5cf6, #ec4899, #f59e0b, #22d3ee, #3b82f6, #8b5cf6)",
+                      backgroundSize: "400% 400%",
+                      animation:
+                        "gradientShift 6s ease infinite, textGlow 3s ease-in-out infinite",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.animation = 'gradientShift 1s ease infinite, textGlow 0.5s ease-in-out infinite, textPulse 0.3s ease-in-out';
+                      e.currentTarget.style.animation =
+                        "gradientShift 1s ease infinite, textGlow 0.5s ease-in-out infinite, textPulse 0.3s ease-in-out";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.animation = 'gradientShift 6s ease infinite, textGlow 3s ease-in-out infinite';
+                      e.currentTarget.style.animation =
+                        "gradientShift 6s ease infinite, textGlow 3s ease-in-out infinite";
                     }}
                   >
                     Virtual Dash
@@ -1817,7 +1869,7 @@ export default function Index() {
                           left: `${20 + i * 15}%`,
                           top: `${30 + (i % 2) * 40}%`,
                           animationDelay: `${i * 0.5}s`,
-                          animationDuration: '4s'
+                          animationDuration: "4s",
                         }}
                       />
                     ))}

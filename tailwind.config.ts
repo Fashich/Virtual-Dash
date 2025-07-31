@@ -85,7 +85,7 @@ export default {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "gradient-x": "gradientShift 6s ease infinite",
-        "float": "float 4s ease-in-out infinite",
+        float: "float 4s ease-in-out infinite",
         "text-glow": "textGlow 3s ease-in-out infinite",
         "text-pulse": "textPulse 0.3s ease-in-out",
       },
