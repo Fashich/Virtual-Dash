@@ -1319,17 +1319,17 @@ function RealisticAsteroid({
           </mesh>
         );
         geometries.push(
-          <mesh key="protrusion1" position={[baseSize * 0.7, 0, 0]} material={asteroidMaterial}>
+          <mesh key="protrusion1" position={[baseSize * 0.7, 0, 0]} material={createVariationMaterial(1)}>
             <octahedronGeometry args={[baseSize * 0.4]} />
           </mesh>
         );
         geometries.push(
-          <mesh key="protrusion2" position={[-baseSize * 0.3, baseSize * 0.6, 0]} material={asteroidMaterial}>
+          <mesh key="protrusion2" position={[-baseSize * 0.3, baseSize * 0.6, 0]} material={createVariationMaterial(2)}>
             <tetrahedronGeometry args={[baseSize * 0.3]} />
           </mesh>
         );
         geometries.push(
-          <mesh key="protrusion3" position={[0, -baseSize * 0.4, baseSize * 0.5]} material={asteroidMaterial}>
+          <mesh key="protrusion3" position={[0, -baseSize * 0.4, baseSize * 0.5]} material={createVariationMaterial(3)}>
             <octahedronGeometry args={[baseSize * 0.35]} />
           </mesh>
         );
@@ -1342,12 +1342,12 @@ function RealisticAsteroid({
           </mesh>
         );
         geometries.push(
-          <mesh key="fragment1" position={[baseSize * 0.8, baseSize * 0.1, baseSize * 0.3]} rotation={[0.5, 0.3, 0.2]} material={asteroidMaterial}>
+          <mesh key="fragment1" position={[baseSize * 0.8, baseSize * 0.1, baseSize * 0.3]} rotation={[0.5, 0.3, 0.2]} material={createVariationMaterial(1)}>
             <boxGeometry args={[baseSize * 0.4, baseSize * 0.3, baseSize * 0.2]} />
           </mesh>
         );
         geometries.push(
-          <mesh key="fragment2" position={[-baseSize * 0.6, -baseSize * 0.2, -baseSize * 0.4]} rotation={[0.3, 0.8, 0.4]} material={asteroidMaterial}>
+          <mesh key="fragment2" position={[-baseSize * 0.6, -baseSize * 0.2, -baseSize * 0.4]} rotation={[0.3, 0.8, 0.4]} material={createVariationMaterial(2)}>
             <boxGeometry args={[baseSize * 0.3, baseSize * 0.5, baseSize * 0.3]} />
           </mesh>
         );
@@ -1372,7 +1372,7 @@ function RealisticAsteroid({
                 Math.sin(angle) * radius
               ]}
               rotation={[Math.random(), Math.random(), Math.random()]}
-              material={asteroidMaterial}
+              material={createVariationMaterial(i + 1)}
             >
               <coneGeometry args={[baseSize * 0.2, height, 6]} />
             </mesh>
