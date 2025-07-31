@@ -1211,43 +1211,190 @@ function InteractiveAsteroids() {
   );
 }
 
-function InteractiveAsteroid({
+// Realistic Asteroid Component with varied irregular shapes
+function RealisticAsteroid({
   position,
   size,
   rotationSpeed,
   orbitRadius,
   orbitSpeed,
+  asteroidType,
+  colorVariant,
 }: {
   position: [number, number, number];
   size: number;
   rotationSpeed: number;
   orbitRadius: number;
   orbitSpeed: number;
+  asteroidType: number;
+  colorVariant: number;
 }) {
-  const asteroidRef = useRef<THREE.Mesh>(null);
+  const asteroidGroupRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
   const { camera, mouse } = useThree();
 
   const { scale } = useSpring({
-    scale: hovered ? 1.3 : 1,
-    config: { tension: 300, friction: 10 },
+    scale: hovered ? 1.2 : 1,
+    config: { tension:300, friction: 10 },
   });
 
+  // Generate realistic asteroid materials with variation
+  const asteroidMaterial = useMemo(() => {
+    const baseColors = [
+      new THREE.Color(0.3, 0.25, 0.2), // Dark rocky
+      new THREE.Color(0.4, 0.35, 0.25), // Brownish
+      new THREE.Color(0.35, 0.3, 0.3), // Grayish
+      new THREE.Color(0.25, 0.3, 0.35), // Bluish gray
+    ];
+
+    const baseColor = baseColors[asteroidType];
+    const colorAdjustment = (colorVariant - 0.5) * 0.2;
+
+    return new THREE.MeshStandardMaterial({
+      color: new THREE.Color(
+        Math.max(0, baseColor.r + colorAdjustment),
+        Math.max(0, baseColor.g + colorAdjustment),
+        Math.max(0, baseColor.b + colorAdjustment)
+      ),
+      roughness: 0.85 + Math.random() * 0.1,
+      metalness: 0.05 + Math.random() * 0.1,
+      emissive: hovered ? new THREE.Color(0.15, 0.1, 0.05) : new THREE.Color(0, 0, 0),
+      map: new THREE.TextureLoader().load(
+        "data:image/svg+xml;base64=" +
+          btoa(`
+        <svg width="256" height="256" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="roughness">
+              <feTurbulence baseFrequency="0.9" numOctaves="4" result="noise"/>
+              <feColorMatrix in="noise" values="0 0 0 0 0.2 0 0 0 0 0.2 0 0 0 0 0.2 0 0 0 1 0"/>
+            </filter>
+          </defs>
+          <rect width="256" height="256" fill="#444444" filter="url(#roughness)"/>
+          <!-- Crater-like indentations -->
+          <circle cx="80" cy="100" r="15" fill="#333333" opacity="0.8"/>
+          <circle cx="180" cy="60" r="10" fill="#333333" opacity="0.7"/>
+          <circle cx="200" cy="150" r="12" fill="#333333" opacity="0.9"/>
+          <circle cx="60" cy="200" r="8" fill="#333333" opacity="0.6"/>
+          <!-- Surface variations -->
+          <ellipse cx="120" cy="180" rx="20" ry="8" fill="#555555" opacity="0.5"/>
+          <ellipse cx="220" cy="100" rx="15" ry="12" fill="#555555" opacity="0.6"/>
+        </svg>
+      `),
+      ),
+    });
+  }, [asteroidType, colorVariant, hovered]);
+
+  // Create realistic irregular asteroid geometry
+  const createAsteroidGeometry = (type: number, baseSize: number) => {
+    const geometries: JSX.Element[] = [];
+
+    switch (type) {
+      case 0: // Elongated rocky asteroid
+        geometries.push(
+          <mesh key="main" material={asteroidMaterial}>
+            <boxGeometry args={[baseSize * 1.8, baseSize * 0.9, baseSize * 1.2]} />
+          </mesh>
+        );
+        geometries.push(
+          <mesh key="chunk1" position={[baseSize * 0.6, baseSize * 0.3, -baseSize * 0.2]} material={asteroidMaterial}>
+            <boxGeometry args={[baseSize * 0.5, baseSize * 0.7, baseSize * 0.6]} />
+          </mesh>
+        );
+        geometries.push(
+          <mesh key="chunk2" position={[-baseSize * 0.4, -baseSize * 0.2, baseSize * 0.4]} material={asteroidMaterial}>
+            <boxGeometry args={[baseSize * 0.6, baseSize * 0.4, baseSize * 0.5]} />
+          </mesh>
+        );
+        break;
+
+      case 1: // Irregular chunky asteroid
+        geometries.push(
+          <mesh key="main" material={asteroidMaterial}>
+            <dodecahedronGeometry args={[baseSize]} />
+          </mesh>
+        );
+        geometries.push(
+          <mesh key="protrusion1" position={[baseSize * 0.7, 0, 0]} material={asteroidMaterial}>
+            <octahedronGeometry args={[baseSize * 0.4]} />
+          </mesh>
+        );
+        geometries.push(
+          <mesh key="protrusion2" position={[-baseSize * 0.3, baseSize * 0.6, 0]} material={asteroidMaterial}>
+            <tetrahedronGeometry args={[baseSize * 0.3]} />
+          </mesh>
+        );
+        geometries.push(
+          <mesh key="protrusion3" position={[0, -baseSize * 0.4, baseSize * 0.5]} material={asteroidMaterial}>
+            <octahedronGeometry args={[baseSize * 0.35]} />
+          </mesh>
+        );
+        break;
+
+      case 2: // Flat fragmented asteroid
+        geometries.push(
+          <mesh key="main" material={asteroidMaterial}>
+            <cylinderGeometry args={[baseSize * 1.2, baseSize * 0.8, baseSize * 0.6, 8]} />
+          </mesh>
+        );
+        geometries.push(
+          <mesh key="fragment1" position={[baseSize * 0.8, baseSize * 0.1, baseSize * 0.3]} rotation={[0.5, 0.3, 0.2]} material={asteroidMaterial}>
+            <boxGeometry args={[baseSize * 0.4, baseSize * 0.3, baseSize * 0.2]} />
+          </mesh>
+        );
+        geometries.push(
+          <mesh key="fragment2" position={[-baseSize * 0.6, -baseSize * 0.2, -baseSize * 0.4]} rotation={[0.3, 0.8, 0.4]} material={asteroidMaterial}>
+            <boxGeometry args={[baseSize * 0.3, baseSize * 0.5, baseSize * 0.3]} />
+          </mesh>
+        );
+        break;
+
+      case 3: // Complex multi-chunk asteroid
+        geometries.push(
+          <mesh key="core" material={asteroidMaterial}>
+            <icosahedronGeometry args={[baseSize * 0.8]} />
+          </mesh>
+        );
+        for (let i = 0; i < 6; i++) {
+          const angle = (i / 6) * Math.PI * 2;
+          const radius = baseSize * (0.8 + Math.random() * 0.4);
+          const height = baseSize * (0.3 + Math.random() * 0.4);
+          geometries.push(
+            <mesh
+              key={`chunk${i}`}
+              position={[
+                Math.cos(angle) * radius,
+                (Math.random() - 0.5) * baseSize * 0.5,
+                Math.sin(angle) * radius
+              ]}
+              rotation={[Math.random(), Math.random(), Math.random()]}
+              material={asteroidMaterial}
+            >
+              <coneGeometry args={[baseSize * 0.2, height, 6]} />
+            </mesh>
+          );
+        }
+        break;
+    }
+
+    return geometries;
+  };
+
   useFrame((state) => {
-    if (asteroidRef.current) {
+    if (asteroidGroupRef.current) {
       const time = state.clock.elapsedTime;
 
-      asteroidRef.current.position.x =
+      asteroidGroupRef.current.position.x =
         position[0] + Math.cos(time * orbitSpeed) * orbitRadius;
-      asteroidRef.current.position.z =
+      asteroidGroupRef.current.position.z =
         position[2] + Math.sin(time * orbitSpeed) * orbitRadius;
 
-      asteroidRef.current.rotation.x += rotationSpeed;
-      asteroidRef.current.rotation.y += rotationSpeed * 0.7;
+      asteroidGroupRef.current.rotation.x += rotationSpeed;
+      asteroidGroupRef.current.rotation.y += rotationSpeed * 0.7;
+      asteroidGroupRef.current.rotation.z += rotationSpeed * 0.3;
 
       const mouseVector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
       mouseVector.unproject(camera);
-      const distance = camera.position.distanceTo(asteroidRef.current.position);
+      const distance = camera.position.distanceTo(asteroidGroupRef.current.position);
 
       if (distance < 15) {
         setHovered(true);
@@ -1258,27 +1405,15 @@ function InteractiveAsteroid({
   });
 
   return (
-    <animated.mesh
-      ref={asteroidRef}
+    <animated.group
+      ref={asteroidGroupRef}
       position={position}
       scale={scale}
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
-      <sphereGeometry args={[size, 12, 12]} />
-      <meshStandardMaterial
-        color={
-          hovered
-            ? new THREE.Color(0.8, 0.6, 0.3)
-            : new THREE.Color(0.4, 0.4, 0.4)
-        }
-        roughness={0.9}
-        metalness={0.1}
-        emissive={
-          hovered ? new THREE.Color(0.2, 0.1, 0) : new THREE.Color(0, 0, 0)
-        }
-      />
-    </animated.mesh>
+      {createAsteroidGeometry(asteroidType, size)}
+    </animated.group>
   );
 }
 
