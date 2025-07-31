@@ -1173,7 +1173,7 @@ function Meteor({
   );
 }
 
-// Interactive Asteroids (keeping only spherical shapes)
+// Realistic Interactive Asteroids with varied shapes
 function InteractiveAsteroids() {
   const { theme } = useTheme();
   const asteroids = useMemo(() => {
@@ -1188,19 +1188,23 @@ function InteractiveAsteroids() {
       rotationSpeed: (Math.random() - 0.5) * 0.02,
       orbitRadius: 2 + Math.random() * 4,
       orbitSpeed: 0.001 + Math.random() * 0.005,
+      asteroidType: Math.floor(Math.random() * 4), // 4 different asteroid types
+      colorVariant: Math.random(), // Color variation
     }));
   }, [theme]);
 
   return (
     <>
       {asteroids.map((asteroid) => (
-        <InteractiveAsteroid
+        <RealisticAsteroid
           key={asteroid.id}
           position={asteroid.position}
           size={asteroid.size}
           rotationSpeed={asteroid.rotationSpeed}
           orbitRadius={asteroid.orbitRadius}
           orbitSpeed={asteroid.orbitSpeed}
+          asteroidType={asteroid.asteroidType}
+          colorVariant={asteroid.colorVariant}
         />
       ))}
     </>
