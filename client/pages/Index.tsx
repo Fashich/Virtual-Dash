@@ -804,9 +804,8 @@ function Earth({ theme }: { theme: string }) {
 }
 
 // Realistic Moon Component
-function Moon() {
+function Moon({ theme }: { theme: string }) {
   const moonRef = useRef<THREE.Mesh>(null);
-  const { theme } = useTheme();
 
   const moonMaterial = useMemo(() => {
     return new THREE.MeshPhongMaterial({
@@ -866,13 +865,12 @@ function Moon() {
 }
 
 // Highly Realistic Sun Component
-function Sun() {
+function Sun({ theme }: { theme: string }) {
   const sunRef = useRef<THREE.Mesh>(null);
   const coronaRef = useRef<THREE.Mesh>(null);
   const flareRef1 = useRef<THREE.Mesh>(null);
   const flareRef2 = useRef<THREE.Mesh>(null);
   const chromosphereRef = useRef<THREE.Mesh>(null);
-  const { theme } = useTheme();
 
   // Realistic Sun surface material
   const sunMaterial = useMemo(() => {
@@ -1080,8 +1078,7 @@ function Sun() {
 }
 
 // Meteor Shower Component (only in dark theme)
-function MeteorShower() {
-  const { theme } = useTheme();
+function MeteorShower({ theme }: { theme: string }) {
 
   // No meteors in light theme at all
   if (theme === "light") return null;
@@ -1169,8 +1166,7 @@ function Meteor({
 }
 
 // Realistic Interactive Asteroids with varied shapes
-function InteractiveAsteroids() {
-  const { theme } = useTheme();
+function InteractiveAsteroids({ theme }: { theme: string }) {
   const asteroids = useMemo(() => {
     return Array.from({ length: theme === "light" ? 4 : 12 }, (_, i) => ({
       id: i,
@@ -1466,8 +1462,7 @@ function RealisticAsteroid({
 }
 
 // Particle Dust System
-function SpaceDust() {
-  const { theme } = useTheme();
+function SpaceDust({ theme }: { theme: string }) {
   const points = useRef<THREE.Points>(null);
 
   const particlesPosition = useMemo(() => {
@@ -1543,9 +1538,8 @@ function TransitionGradient() {
 }
 
 // Dynamic Lighting System
-function DynamicLighting() {
+function DynamicLighting({ theme }: { theme: string }) {
   const { mouse } = useThree();
-  const { theme } = useTheme();
   const lightRef = useRef<THREE.PointLight>(null);
 
   useFrame(() => {
