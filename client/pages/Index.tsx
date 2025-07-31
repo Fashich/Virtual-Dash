@@ -5,8 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '@/contexts/GameContext';
 import { useWeb3 } from '@/hooks/useWeb3';
+import { useTheme } from '@/contexts/ThemeContext';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Float, Sphere, Box, Torus, Stars, OrbitControls, Points, PointMaterial, Trail, Sparkles as DreiSparkles } from '@react-three/drei';
+import { Float, Sphere, Stars, OrbitControls, Points, PointMaterial, Trail, Sparkles as DreiSparkles } from '@react-three/drei';
 import { useSpring, animated } from '@react-spring/three';
 import * as THREE from 'three';
 import { 
@@ -125,10 +127,126 @@ function Earth() {
   );
 }
 
-// Meteor Shower Component
+// Realistic Moon Component
+function Moon() {
+  const moonRef = useRef<THREE.Mesh>(null);
+  const { theme } = useTheme();
+
+  const moonMaterial = useMemo(() => {
+    return new THREE.MeshPhongMaterial({
+      map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+        <svg width="256" height="128" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="moon" cx="40%" cy="40%">
+              <stop offset="0%" style="stop-color:#e6e6e6"/>
+              <stop offset="70%" style="stop-color:#cccccc"/>
+              <stop offset="100%" style="stop-color:#999999"/>
+            </radialGradient>
+          </defs>
+          <rect width="256" height="128" fill="url(#moon)"/>
+          <circle cx="60" cy="40" r="8" fill="#aaaaaa"/>
+          <circle cx="120" cy="70" r="12" fill="#aaaaaa"/>
+          <circle cx="180" cy="35" r="6" fill="#aaaaaa"/>
+          <circle cx="200" cy="80" r="10" fill="#aaaaaa"/>
+          <circle cx="40" cy="90" r="5" fill="#aaaaaa"/>
+        </svg>
+      `)),
+      shininess: 30,
+      transparent: true
+    });
+  }, []);
+
+  useFrame((state) => {
+    if (moonRef.current) {
+      // Moon orbits around Earth
+      const earthPosition = [20, 5, -30];
+      const orbitRadius = 15;
+      const orbitSpeed = 0.02;
+      
+      moonRef.current.position.x = earthPosition[0] + Math.cos(state.clock.elapsedTime * orbitSpeed) * orbitRadius;
+      moonRef.current.position.y = earthPosition[1] + Math.sin(state.clock.elapsedTime * orbitSpeed * 0.5) * 3;
+      moonRef.current.position.z = earthPosition[2] + Math.sin(state.clock.elapsedTime * orbitSpeed) * orbitRadius;
+      
+      // Moon rotation
+      moonRef.current.rotation.y = state.clock.elapsedTime * 0.01;
+    }
+  });
+
+  return (
+    <mesh ref={moonRef} material={moonMaterial}>
+      <sphereGeometry args={[1.8, 32, 32]} />
+    </mesh>
+  );
+}
+
+// Realistic Sun Component
+function Sun() {
+  const sunRef = useRef<THREE.Mesh>(null);
+  const coronaRef = useRef<THREE.Mesh>(null);
+  const { theme } = useTheme();
+
+  const sunMaterial = useMemo(() => {
+    return new THREE.MeshBasicMaterial({
+      color: new THREE.Color(1.0, 0.7, 0.3),
+      emissive: new THREE.Color(1.0, 0.5, 0.1),
+      emissiveIntensity: 0.8
+    });
+  }, []);
+
+  const coronaMaterial = useMemo(() => {
+    return new THREE.MeshBasicMaterial({
+      color: new THREE.Color(1.0, 0.8, 0.4),
+      transparent: true,
+      opacity: 0.3,
+      side: THREE.BackSide
+    });
+  }, []);
+
+  useFrame((state) => {
+    if (sunRef.current) {
+      sunRef.current.rotation.y = state.clock.elapsedTime * 0.02;
+      
+      // Pulsing effect
+      const pulse = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.1;
+      sunRef.current.scale.setScalar(pulse);
+    }
+    
+    if (coronaRef.current) {
+      coronaRef.current.rotation.y = -state.clock.elapsedTime * 0.01;
+      
+      // Corona pulsing
+      const coronaPulse = 1 + Math.sin(state.clock.elapsedTime * 1.5) * 0.15;
+      coronaRef.current.scale.setScalar(coronaPulse);
+    }
+  });
+
+  return (
+    <group position={[-60, 20, -80]}>
+      {/* Sun Core */}
+      <mesh ref={sunRef} material={sunMaterial}>
+        <sphereGeometry args={[8, 32, 32]} />
+      </mesh>
+      
+      {/* Corona */}
+      <mesh ref={coronaRef} material={coronaMaterial}>
+        <sphereGeometry args={[12, 32, 32]} />
+      </mesh>
+      
+      {/* Sun Light */}
+      <pointLight
+        intensity={2}
+        color={new THREE.Color(1.0, 0.8, 0.6)}
+        distance={150}
+        decay={2}
+      />
+    </group>
+  );
+}
+
+// Meteor Shower Component (keeping spheres only)
 function MeteorShower() {
   const meteors = useMemo(() => {
-    return Array.from({ length: 20 }, (_, i) => ({
+    return Array.from({ length: 15 }, (_, i) => ({
       id: i,
       startPosition: [
         (Math.random() - 0.5) * 100,
@@ -136,7 +254,7 @@ function MeteorShower() {
         -50 - Math.random() * 50
       ] as [number, number, number],
       speed: 0.5 + Math.random() * 1.5,
-      size: 0.2 + Math.random() * 0.8,
+      size: 0.2 + Math.random() * 0.6,
       delay: Math.random() * 10
     }));
   }, []);
@@ -205,19 +323,19 @@ function Meteor({ startPosition, speed, size, delay }: {
   );
 }
 
-// Interactive Asteroids
+// Interactive Asteroids (keeping only spherical shapes)
 function InteractiveAsteroids() {
   const asteroids = useMemo(() => {
-    return Array.from({ length: 15 }, (_, i) => ({
+    return Array.from({ length: 12 }, (_, i) => ({
       id: i,
       position: [
         (Math.random() - 0.5) * 80,
         (Math.random() - 0.5) * 40,
         -20 - Math.random() * 40
       ] as [number, number, number],
-      size: 1 + Math.random() * 3,
+      size: 0.8 + Math.random() * 2,
       rotationSpeed: (Math.random() - 0.5) * 0.02,
-      orbitRadius: 2 + Math.random() * 5,
+      orbitRadius: 2 + Math.random() * 4,
       orbitSpeed: 0.001 + Math.random() * 0.005
     }));
   }, []);
@@ -256,7 +374,7 @@ function InteractiveAsteroid({
   const { camera, mouse } = useThree();
 
   const { scale } = useSpring({
-    scale: hovered ? 1.5 : 1,
+    scale: hovered ? 1.3 : 1,
     config: { tension: 300, friction: 10 }
   });
 
@@ -275,7 +393,6 @@ function InteractiveAsteroid({
       // Mouse interaction
       const mouseVector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
       mouseVector.unproject(camera);
-      const direction = mouseVector.sub(camera.position).normalize();
       const distance = camera.position.distanceTo(asteroidRef.current.position);
       
       if (distance < 15) {
@@ -294,11 +411,11 @@ function InteractiveAsteroid({
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
-      <dodecahedronGeometry args={[size, 0]} />
+      <sphereGeometry args={[size, 12, 12]} />
       <meshStandardMaterial
         color={hovered ? new THREE.Color(0.8, 0.6, 0.3) : new THREE.Color(0.4, 0.4, 0.4)}
-        roughness={0.8}
-        metalness={0.2}
+        roughness={0.9}
+        metalness={0.1}
         emissive={hovered ? new THREE.Color(0.2, 0.1, 0) : new THREE.Color(0, 0, 0)}
       />
     </animated.mesh>
@@ -310,9 +427,9 @@ function SpaceDust() {
   const points = useRef<THREE.Points>(null);
   
   const particlesPosition = useMemo(() => {
-    const positions = new Float32Array(5000 * 3);
-    for (let i = 0; i < 5000; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 100;
+    const positions = new Float32Array(3000 * 3);
+    for (let i = 0; i < 3000; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 150;
       positions[i * 3 + 1] = (Math.random() - 0.5) * 100;
       positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
     }
@@ -331,79 +448,42 @@ function SpaceDust() {
       <PointMaterial
         transparent
         color="#ffffff"
-        size={0.05}
+        size={0.03}
         sizeAttenuation={true}
         depthWrite={false}
-        opacity={0.6}
+        opacity={0.4}
       />
     </Points>
-  );
-}
-
-// Nebula Effect
-function NebulaEffect() {
-  const nebulaRef = useRef<THREE.Mesh>(null);
-  
-  useFrame((state) => {
-    if (nebulaRef.current) {
-      nebulaRef.current.rotation.z = state.clock.elapsedTime * 0.001;
-      nebulaRef.current.material.opacity = 0.1 + Math.sin(state.clock.elapsedTime * 0.5) * 0.05;
-    }
-  });
-
-  return (
-    <mesh ref={nebulaRef} position={[-40, 0, -60]}>
-      <planeGeometry args={[80, 80]} />
-      <meshBasicMaterial
-        color={new THREE.Color(0.5, 0.2, 0.8)}
-        transparent
-        opacity={0.1}
-        side={THREE.DoubleSide}
-      />
-    </mesh>
   );
 }
 
 // Dynamic Lighting System
 function DynamicLighting() {
   const { mouse } = useThree();
+  const { theme } = useTheme();
   const lightRef = useRef<THREE.PointLight>(null);
-  const spotLightRef = useRef<THREE.SpotLight>(null);
 
   useFrame(() => {
     if (lightRef.current) {
-      lightRef.current.position.x = mouse.x * 20;
-      lightRef.current.position.y = mouse.y * 20;
-      lightRef.current.intensity = 1 + mouse.x * 0.5;
-    }
-    if (spotLightRef.current) {
-      spotLightRef.current.target.position.x = mouse.x * 10;
-      spotLightRef.current.target.position.y = mouse.y * 10;
+      lightRef.current.position.x = mouse.x * 15;
+      lightRef.current.position.y = mouse.y * 15;
+      lightRef.current.intensity = theme === 'light' ? 0.8 : 1.2;
     }
   });
 
   return (
     <>
-      <ambientLight intensity={0.1} />
+      <ambientLight intensity={theme === 'light' ? 0.4 : 0.1} />
       <pointLight
         ref={lightRef}
         position={[10, 10, 10]}
-        intensity={1.2}
-        color={new THREE.Color(0.3, 0.6, 1.0)}
+        intensity={theme === 'light' ? 0.8 : 1.2}
+        color={new THREE.Color(theme === 'light' ? 0.9 : 0.3, theme === 'light' ? 0.9 : 0.6, 1.0)}
         distance={100}
-      />
-      <spotLight
-        ref={spotLightRef}
-        position={[20, 20, 20]}
-        angle={0.3}
-        penumbra={1}
-        intensity={0.8}
-        color={new THREE.Color(0.8, 0.4, 1.0)}
-        distance={80}
       />
       <directionalLight
         position={[-20, 10, 5]}
-        intensity={0.5}
+        intensity={theme === 'light' ? 0.8 : 0.5}
         color={new THREE.Color(1.0, 0.8, 0.6)}
       />
     </>
@@ -412,11 +492,17 @@ function DynamicLighting() {
 
 // Main 3D Space Scene
 function SpaceScene() {
+  const { theme } = useTheme();
+  
+  const backgroundGradient = theme === 'light' 
+    ? 'linear-gradient(180deg, #87CEEB 0%, #B0E0E6 50%, #F0F8FF 100%)'
+    : 'linear-gradient(180deg, #000011 0%, #000033 50%, #000055 100%)';
+
   return (
     <div className="fixed inset-0 z-0">
       <Canvas
         camera={{ position: [0, 0, 20], fov: 75 }}
-        style={{ background: 'linear-gradient(180deg, #000011 0%, #000033 50%, #000055 100%)' }}
+        style={{ background: backgroundGradient }}
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: true }}
       >
@@ -426,28 +512,29 @@ function SpaceScene() {
         <Stars 
           radius={200} 
           depth={50} 
-          count={12000} 
-          factor={6} 
-          saturation={0.5} 
+          count={theme === 'light' ? 3000 : 8000} 
+          factor={theme === 'light' ? 2 : 4} 
+          saturation={0.3} 
           fade 
-          speed={2} 
+          speed={1} 
         />
         
         {/* 3D Objects */}
         <Earth />
+        <Moon />
+        <Sun />
         <MeteorShower />
         <InteractiveAsteroids />
         <SpaceDust />
-        <NebulaEffect />
         
         {/* Additional Effects */}
         <DreiSparkles 
-          count={100} 
-          scale={[40, 40, 40]} 
-          size={2} 
-          speed={0.4} 
-          opacity={0.6}
-          color="#4fc3f7"
+          count={60} 
+          scale={[30, 30, 30]} 
+          size={1} 
+          speed={0.3} 
+          opacity={theme === 'light' ? 0.3 : 0.5}
+          color={theme === 'light' ? "#FFD700" : "#4fc3f7"}
         />
         
         {/* Orbital Controls for subtle camera movement */}
@@ -456,7 +543,7 @@ function SpaceScene() {
           enablePan={false} 
           enableRotate={false}
           autoRotate
-          autoRotateSpeed={0.2}
+          autoRotateSpeed={0.1}
         />
       </Canvas>
     </div>
@@ -467,6 +554,7 @@ function SpaceScene() {
 function EnhancedMouseEffect() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isMoving, setIsMoving] = useState(false);
+  const { theme } = useTheme();
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
@@ -486,6 +574,10 @@ function EnhancedMouseEffect() {
     };
   }, []);
 
+  const gradientColors = theme === 'light'
+    ? 'rgba(255, 215, 0, 0.2) 0%, rgba(255, 165, 0, 0.1) 30%, rgba(135, 206, 235, 0.05) 60%, transparent 80%'
+    : 'rgba(59, 130, 246, 0.3) 0%, rgba(147, 51, 234, 0.2) 30%, rgba(236, 72, 153, 0.1) 60%, transparent 80%';
+
   return (
     <div
       className={`fixed pointer-events-none z-30 transition-all duration-300 ${
@@ -496,12 +588,7 @@ function EnhancedMouseEffect() {
         top: mousePosition.y - 200,
         width: '400px',
         height: '400px',
-        background: `radial-gradient(circle, 
-          rgba(59, 130, 246, 0.3) 0%, 
-          rgba(147, 51, 234, 0.2) 30%, 
-          rgba(236, 72, 153, 0.1) 60%, 
-          transparent 80%
-        )`,
+        background: `radial-gradient(circle, ${gradientColors})`,
         borderRadius: '50%',
         filter: 'blur(60px)',
         transform: `scale(${isMoving ? 1.2 : 1})`,
@@ -514,6 +601,7 @@ export default function Index() {
   const navigate = useNavigate();
   const { state, dispatch } = useGame();
   const { connectWallet, isConnecting, error } = useWeb3();
+  const { theme } = useTheme();
 
   // Guest mode handler
   const handlePlayAsGuest = () => {
@@ -563,7 +651,7 @@ export default function Index() {
   ];
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className={`min-h-screen relative overflow-hidden ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
       {/* Enhanced 3D Space Background */}
       <SpaceScene />
       
@@ -573,7 +661,11 @@ export default function Index() {
       {/* Content */}
       <div className="relative z-20">
         {/* Professional Navbar */}
-        <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-black/30 border-b border-white/10">
+        <nav className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl ${
+          theme === 'light' 
+            ? 'bg-white/30 border-gray-200/30' 
+            : 'bg-black/30 border-white/10'
+        } border-b`}>
           <div className="container mx-auto px-6 py-4">
             <div className="flex justify-between items-center">
               {/* Logo Section */}
@@ -586,13 +678,19 @@ export default function Index() {
                   />
                   <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg blur opacity-30"></div>
                 </div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                <h1 className={`text-2xl font-bold bg-gradient-to-r ${
+                  theme === 'light' 
+                    ? 'from-gray-800 to-blue-600' 
+                    : 'from-white to-blue-200'
+                } bg-clip-text text-transparent`}>
                   Virtual Dash
                 </h1>
               </div>
 
               {/* Navigation Buttons */}
               <div className="flex items-center space-x-4">
+                <ThemeToggle />
+                
                 {state.wallet.isConnected ? (
                   <Badge className="bg-green-500/20 text-green-300 border-green-500/30 px-4 py-2">
                     <Wallet className="w-4 h-4 mr-2" />
@@ -633,7 +731,9 @@ export default function Index() {
               </h1>
 
               {/* Subtitle */}
-              <p className="text-xl md:text-2xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed">
+              <p className={`text-xl md:text-2xl mb-12 max-w-3xl mx-auto leading-relaxed ${
+                theme === 'light' ? 'text-gray-700' : 'text-gray-300'
+              }`}>
                 Embark on an epic journey through the cosmos in this revolutionary 3D endless runner. 
                 <span className="text-cyan-400"> Collect cosmic rewards</span>, 
                 <span className="text-purple-400"> upgrade your ship</span>, and 
@@ -654,7 +754,11 @@ export default function Index() {
                 <Button 
                   onClick={() => navigate('/guide')} 
                   size="lg"
-                  className="bg-white/10 hover:bg-white/20 text-white border-2 border-white/20 hover:border-white/30 backdrop-blur-sm px-8 py-4 text-lg font-semibold transition-all duration-300 hover:scale-105"
+                  className={`${
+                    theme === 'light'
+                      ? 'bg-gray-100/50 hover:bg-gray-200/50 text-gray-800 border-2 border-gray-300/50 hover:border-gray-400/50'
+                      : 'bg-white/10 hover:bg-white/20 text-white border-2 border-white/20 hover:border-white/30'
+                  } backdrop-blur-sm px-8 py-4 text-lg font-semibold transition-all duration-300 hover:scale-105`}
                 >
                   <BookOpen className="w-6 h-6 mr-3" />
                   Learn How to Play
@@ -662,15 +766,21 @@ export default function Index() {
               </div>
 
               {/* Guest Mode Notice */}
-              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 max-w-2xl mx-auto mb-12 backdrop-blur-sm">
-                <div className="flex items-center justify-center space-x-2 text-yellow-300">
+              <div className={`${
+                theme === 'light'
+                  ? 'bg-amber-200/20 border-amber-400/30 text-amber-800'
+                  : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-300'
+              } border rounded-lg p-4 max-w-2xl mx-auto mb-12 backdrop-blur-sm`}>
+                <div className="flex items-center justify-center space-x-2">
                   <Sparkles className="w-5 h-5" />
                   <span className="text-sm font-medium">
                     Playing as guest? Your progress won't be saved. 
                     <Button 
                       onClick={() => navigate('/signup')}
                       variant="link" 
-                      className="text-yellow-400 hover:text-yellow-300 p-0 h-auto ml-1"
+                      className={`${
+                        theme === 'light' ? 'text-amber-700 hover:text-amber-600' : 'text-yellow-400 hover:text-yellow-300'
+                      } p-0 h-auto ml-1`}
                     >
                       Sign up to save progress!
                     </Button>
@@ -687,11 +797,19 @@ export default function Index() {
                     { icon: Diamond, value: state.player.diamonds, label: 'Diamonds', color: 'text-blue-400' },
                     { icon: Zap, value: state.player.level, label: 'Level', color: 'text-purple-400' }
                   ].map((stat, index) => (
-                    <Card key={index} className="bg-white/5 border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors">
+                    <Card key={index} className={`${
+                      theme === 'light'
+                        ? 'bg-white/20 border-gray-200/30 hover:bg-white/30'
+                        : 'bg-white/5 border-white/10 hover:bg-white/10'
+                    } backdrop-blur-sm transition-colors`}>
                       <CardContent className="p-4 text-center">
                         <stat.icon className={`w-8 h-8 mx-auto mb-2 ${stat.color}`} />
-                        <div className="text-2xl font-bold text-white">{stat.value.toLocaleString()}</div>
-                        <div className="text-sm text-gray-400">{stat.label}</div>
+                        <div className={`text-2xl font-bold ${theme === 'light' ? 'text-gray-800' : 'text-white'}`}>
+                          {stat.value.toLocaleString()}
+                        </div>
+                        <div className={`text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                          {stat.label}
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
@@ -705,10 +823,14 @@ export default function Index() {
         <div className="py-20">
           <div className="container mx-auto px-6">
             <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              <h2 className={`text-4xl md:text-5xl font-bold mb-6 ${
+                theme === 'light' ? 'text-gray-800' : 'text-white'
+              }`}>
                 Cosmic Game Features
               </h2>
-              <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+              <p className={`text-xl max-w-3xl mx-auto ${
+                theme === 'light' ? 'text-gray-700' : 'text-gray-300'
+              }`}>
                 Experience the next generation of space gaming with cutting-edge technology and immersive gameplay
               </p>
             </div>
@@ -717,16 +839,24 @@ export default function Index() {
               {features.map((feature, index) => (
                 <Card 
                   key={index} 
-                  className="bg-white/5 border-white/10 backdrop-blur-sm hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-105 group"
+                  className={`${
+                    theme === 'light'
+                      ? 'bg-white/20 border-gray-200/30 hover:bg-white/30 hover:border-gray-300/50'
+                      : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                  } backdrop-blur-sm transition-all duration-300 hover:scale-105 group`}
                 >
                   <CardHeader>
                     <div className="text-cyan-400 mb-4 group-hover:text-cyan-300 transition-colors">
                       {feature.icon}
                     </div>
-                    <CardTitle className="text-white text-xl">{feature.title}</CardTitle>
+                    <CardTitle className={`text-xl ${theme === 'light' ? 'text-gray-800' : 'text-white'}`}>
+                      {feature.title}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <CardDescription className="text-gray-300 leading-relaxed">
+                    <CardDescription className={`leading-relaxed ${
+                      theme === 'light' ? 'text-gray-700' : 'text-gray-300'
+                    }`}>
                       {feature.description}
                     </CardDescription>
                   </CardContent>
@@ -740,10 +870,12 @@ export default function Index() {
         <div className="py-20">
           <div className="container mx-auto px-6">
             <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              <h2 className={`text-4xl md:text-5xl font-bold mb-6 ${
+                theme === 'light' ? 'text-gray-800' : 'text-white'
+              }`}>
                 Mission Control
               </h2>
-              <p className="text-xl text-gray-300">
+              <p className={`text-xl ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
                 Choose your path through the cosmos
               </p>
             </div>
@@ -785,7 +917,9 @@ export default function Index() {
               ].map((action, index) => (
                 <Card
                   key={index}
-                  className={`bg-gradient-to-br ${action.gradient} border-white/20 cursor-pointer hover:scale-105 transition-all duration-300 hover:shadow-xl ${action.shadow} backdrop-blur-sm group`}
+                  className={`bg-gradient-to-br ${action.gradient} ${
+                    theme === 'light' ? 'border-gray-200/40' : 'border-white/20'
+                  } cursor-pointer hover:scale-105 transition-all duration-300 hover:shadow-xl ${action.shadow} backdrop-blur-sm group`}
                   onClick={action.onClick}
                 >
                   <CardContent className="p-6 text-center">
@@ -802,9 +936,13 @@ export default function Index() {
         </div>
 
         {/* Footer */}
-        <footer className="border-t border-white/10 bg-black/20 backdrop-blur-sm py-8">
+        <footer className={`border-t backdrop-blur-sm py-8 ${
+          theme === 'light'
+            ? 'border-gray-200/30 bg-white/20'
+            : 'border-white/10 bg-black/20'
+        }`}>
           <div className="container mx-auto px-6 text-center">
-            <p className="text-gray-400">
+            <p className={theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>
               &copy; 2025 Virtual Dash. Explore the cosmos with Three.js and Web3 technology.
             </p>
           </div>
