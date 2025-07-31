@@ -213,31 +213,39 @@ function Earth() {
 
   useFrame((state) => {
     if (earthRef.current) {
-      earthRef.current.rotation.y = state.clock.elapsedTime * 0.05;
+      earthRef.current.rotation.y = state.clock.elapsedTime * 0.02; // Earth's rotation - 24 hours
     }
     if (cloudsRef.current) {
-      cloudsRef.current.rotation.y = state.clock.elapsedTime * 0.07;
+      cloudsRef.current.rotation.y = state.clock.elapsedTime * 0.025; // Clouds move slightly faster
     }
     if (atmosphereRef.current) {
-      atmosphereRef.current.rotation.y = state.clock.elapsedTime * 0.03;
+      atmosphereRef.current.rotation.y = state.clock.elapsedTime * 0.01; // Atmosphere subtle rotation
+    }
+    if (nightLightsRef.current) {
+      nightLightsRef.current.rotation.y = state.clock.elapsedTime * 0.02; // Same as Earth
     }
   });
 
   return (
     <group position={[20, 5, -30]}>
-      {/* Earth */}
+      {/* Earth Core */}
       <mesh ref={earthRef} material={earthMaterial}>
-        <sphereGeometry args={[6, 64, 64]} />
+        <sphereGeometry args={[6, 128, 64]} />
       </mesh>
-      
-      {/* Clouds */}
+
+      {/* Night Lights */}
+      <mesh ref={nightLightsRef} material={nightLightsMaterial}>
+        <sphereGeometry args={[6.02, 64, 32]} />
+      </mesh>
+
+      {/* Cloud Layer */}
       <mesh ref={cloudsRef} material={cloudMaterial}>
-        <sphereGeometry args={[6.1, 64, 64]} />
+        <sphereGeometry args={[6.15, 64, 32]} />
       </mesh>
-      
-      {/* Atmosphere */}
+
+      {/* Atmosphere Glow */}
       <mesh ref={atmosphereRef} material={atmosphereMaterial}>
-        <sphereGeometry args={[6.5, 32, 32]} />
+        <sphereGeometry args={[6.8, 32, 16]} />
       </mesh>
     </group>
   );
@@ -295,64 +303,196 @@ function Moon() {
   );
 }
 
-// Realistic Sun Component
+// Highly Realistic Sun Component
 function Sun() {
   const sunRef = useRef<THREE.Mesh>(null);
   const coronaRef = useRef<THREE.Mesh>(null);
+  const flareRef1 = useRef<THREE.Mesh>(null);
+  const flareRef2 = useRef<THREE.Mesh>(null);
+  const chromosphereRef = useRef<THREE.Mesh>(null);
   const { theme } = useTheme();
 
+  // Realistic Sun surface material
   const sunMaterial = useMemo(() => {
     return new THREE.MeshBasicMaterial({
-      color: new THREE.Color(1.0, 0.7, 0.3),
-      emissive: new THREE.Color(1.0, 0.5, 0.1),
-      emissiveIntensity: 0.8
+      map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+        <svg width="512" height="256" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="sunCore" cx="50%" cy="50%">
+              <stop offset="0%" style="stop-color:#FFF8DC"/>
+              <stop offset="20%" style="stop-color:#FFD700"/>
+              <stop offset="40%" style="stop-color:#FFA500"/>
+              <stop offset="60%" style="stop-color:#FF8C00"/>
+              <stop offset="80%" style="stop-color:#FF6347"/>
+              <stop offset="100%" style="stop-color:#FF4500"/>
+            </radialGradient>
+            <radialGradient id="sunspot1" cx="30%" cy="40%">
+              <stop offset="0%" style="stop-color:#8B0000"/>
+              <stop offset="50%" style="stop-color:#B22222"/>
+              <stop offset="100%" style="stop-color:#FF4500"/>
+            </radialGradient>
+            <radialGradient id="sunspot2" cx="70%" cy="60%">
+              <stop offset="0%" style="stop-color:#8B0000"/>
+              <stop offset="40%" style="stop-color:#B22222"/>
+              <stop offset="100%" style="stop-color:#FF6347"/>
+            </radialGradient>
+          </defs>
+
+          <!-- Solar surface -->
+          <rect width="512" height="256" fill="url(#sunCore)"/>
+
+          <!-- Solar granulation pattern -->
+          <circle cx="100" cy="80" r="15" fill="#FFB347" opacity="0.6"/>
+          <circle cx="200" cy="120" r="20" fill="#FFCCCB" opacity="0.5"/>
+          <circle cx="350" cy="90" r="18" fill="#FFB347" opacity="0.7"/>
+          <circle cx="450" cy="140" r="12" fill="#FFCCCB" opacity="0.6"/>
+          <circle cx="80" cy="180" r="16" fill="#FFB347" opacity="0.5"/>
+          <circle cx="280" cy="200" r="22" fill="#FFCCCB" opacity="0.6"/>
+
+          <!-- Sunspots -->
+          <ellipse cx="150" cy="100" rx="8" ry="12" fill="url(#sunspot1)"/>
+          <ellipse cx="380" cy="160" rx="6" ry="9" fill="url(#sunspot2)"/>
+
+          <!-- Solar flares/prominences -->
+          <path d="M480 100 Q490 80 500 90 Q510 100 500 110 Q490 120 480 100" fill="#FF69B4" opacity="0.8"/>
+          <path d="M50 150 Q40 130 30 140 Q20 150 30 160 Q40 170 50 150" fill="#FF1493" opacity="0.7"/>
+        </svg>
+      `)),
+      color: new THREE.Color(1.0, 0.9, 0.8),
+      emissive: new THREE.Color(1.0, 0.6, 0.2),
+      emissiveIntensity: 1.5
     });
   }, []);
 
+  // Chromosphere layer
+  const chromosphereMaterial = useMemo(() => {
+    return new THREE.MeshBasicMaterial({
+      color: new THREE.Color(1.0, 0.3, 0.1),
+      transparent: true,
+      opacity: 0.4,
+      blending: THREE.AdditiveBlending
+    });
+  }, []);
+
+  // Corona material with realistic solar wind effect
   const coronaMaterial = useMemo(() => {
     return new THREE.MeshBasicMaterial({
-      color: new THREE.Color(1.0, 0.8, 0.4),
+      map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+        <svg width="256" height="128" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="corona" cx="50%" cy="50%">
+              <stop offset="0%" style="stop-color:rgba(255,255,255,0.1)"/>
+              <stop offset="30%" style="stop-color:rgba(255,215,0,0.3)"/>
+              <stop offset="60%" style="stop-color:rgba(255,165,0,0.2)"/>
+              <stop offset="100%" style="stop-color:rgba(255,69,0,0.05)"/>
+            </radialGradient>
+          </defs>
+          <rect width="256" height="128" fill="url(#corona)"/>
+
+          <!-- Solar wind streams -->
+          <path d="M20 64 Q50 50 80 64 Q110 78 140 64 Q170 50 200 64 Q230 78 256 64"
+                stroke="rgba(255,255,255,0.2)" stroke-width="2" fill="none"/>
+          <path d="M0 40 Q30 30 60 40 Q90 50 120 40 Q150 30 180 40 Q210 50 240 40"
+                stroke="rgba(255,215,0,0.15)" stroke-width="1.5" fill="none"/>
+          <path d="M0 88 Q30 98 60 88 Q90 78 120 88 Q150 98 180 88 Q210 78 240 88"
+                stroke="rgba(255,165,0,0.1)" stroke-width="1" fill="none"/>
+        </svg>
+      `)),
       transparent: true,
-      opacity: 0.3,
-      side: THREE.BackSide
+      opacity: 0.6,
+      side: THREE.BackSide,
+      blending: THREE.AdditiveBlending
+    });
+  }, []);
+
+  // Solar flare materials
+  const flareMaterial = useMemo(() => {
+    return new THREE.MeshBasicMaterial({
+      color: new THREE.Color(1.0, 0.4, 0.6),
+      transparent: true,
+      opacity: 0.8,
+      blending: THREE.AdditiveBlending
     });
   }, []);
 
   useFrame((state) => {
+    const time = state.clock.elapsedTime;
+
     if (sunRef.current) {
-      sunRef.current.rotation.y = state.clock.elapsedTime * 0.02;
-      
-      // Pulsing effect
-      const pulse = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.1;
-      sunRef.current.scale.setScalar(pulse);
+      // Solar rotation (about 25 days)
+      sunRef.current.rotation.y = time * 0.003;
+
+      // Subtle pulsing for solar activity
+      const solarPulse = 1 + Math.sin(time * 0.5) * 0.02;
+      sunRef.current.scale.setScalar(solarPulse);
     }
-    
+
+    if (chromosphereRef.current) {
+      chromosphereRef.current.rotation.y = time * 0.005;
+      const chromoPulse = 1 + Math.sin(time * 0.8) * 0.03;
+      chromosphereRef.current.scale.setScalar(chromoPulse);
+    }
+
     if (coronaRef.current) {
-      coronaRef.current.rotation.y = -state.clock.elapsedTime * 0.01;
-      
-      // Corona pulsing
-      const coronaPulse = 1 + Math.sin(state.clock.elapsedTime * 1.5) * 0.15;
+      coronaRef.current.rotation.y = -time * 0.001;
+      coronaRef.current.rotation.z = time * 0.002;
+
+      // Corona expansion/contraction
+      const coronaPulse = 1 + Math.sin(time * 0.3) * 0.05;
       coronaRef.current.scale.setScalar(coronaPulse);
+    }
+
+    // Solar flare animations
+    if (flareRef1.current) {
+      flareRef1.current.rotation.z = time * 2;
+      flareRef1.current.scale.setScalar(1 + Math.sin(time * 3) * 0.3);
+    }
+
+    if (flareRef2.current) {
+      flareRef2.current.rotation.z = -time * 1.5;
+      flareRef2.current.scale.setScalar(1 + Math.cos(time * 2.5) * 0.2);
     }
   });
 
   return (
-    <group position={[-60, 20, -80]}>
+    <group position={[-70, 25, -90]}>
       {/* Sun Core */}
       <mesh ref={sunRef} material={sunMaterial}>
-        <sphereGeometry args={[8, 32, 32]} />
+        <sphereGeometry args={[12, 64, 32]} />
       </mesh>
-      
+
+      {/* Chromosphere */}
+      <mesh ref={chromosphereRef} material={chromosphereMaterial}>
+        <sphereGeometry args={[12.5, 32, 16]} />
+      </mesh>
+
       {/* Corona */}
       <mesh ref={coronaRef} material={coronaMaterial}>
-        <sphereGeometry args={[12, 32, 32]} />
+        <sphereGeometry args={[18, 32, 16]} />
       </mesh>
-      
-      {/* Sun Light */}
+
+      {/* Solar Flares */}
+      <mesh ref={flareRef1} material={flareMaterial} position={[0, 8, 0]}>
+        <coneGeometry args={[2, 6, 8]} />
+      </mesh>
+      <mesh ref={flareRef2} material={flareMaterial} position={[0, -8, 0]} rotation={[Math.PI, 0, 0]}>
+        <coneGeometry args={[1.5, 4, 8]} />
+      </mesh>
+
+      {/* Realistic Sun Light */}
       <pointLight
-        intensity={2}
-        color={new THREE.Color(1.0, 0.8, 0.6)}
-        distance={150}
+        intensity={3.5}
+        color={new THREE.Color(1.0, 0.95, 0.8)}
+        distance={200}
+        decay={1.5}
+      />
+
+      {/* Secondary warm light */}
+      <pointLight
+        position={[5, 0, 0]}
+        intensity={1.2}
+        color={new THREE.Color(1.0, 0.7, 0.4)}
+        distance={100}
         decay={2}
       />
     </group>
@@ -625,14 +765,14 @@ function SpaceScene() {
         <DynamicLighting />
         
         {/* Enhanced Stars */}
-        <Stars 
-          radius={200} 
-          depth={50} 
-          count={theme === 'light' ? 3000 : 8000} 
-          factor={theme === 'light' ? 2 : 4} 
-          saturation={0.3} 
-          fade 
-          speed={1} 
+        <Stars
+          radius={300}
+          depth={60}
+          count={theme === 'light' ? 4000 : 12000}
+          factor={theme === 'light' ? 3 : 6}
+          saturation={0.4}
+          fade
+          speed={0.5}
         />
         
         {/* 3D Objects */}
