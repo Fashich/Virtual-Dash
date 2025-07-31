@@ -1041,11 +1041,15 @@ function Sun() {
   );
 }
 
-// Meteor Shower Component (keeping spheres only)
+// Meteor Shower Component (only in dark theme)
 function MeteorShower() {
   const { theme } = useTheme();
+
+  // No meteors in light theme at all
+  if (theme === "light") return null;
+
   const meteors = useMemo(() => {
-    return Array.from({ length: theme === "light" ? 5 : 15 }, (_, i) => ({
+    return Array.from({ length: 15 }, (_, i) => ({
       id: i,
       startPosition: [
         (Math.random() - 0.5) * 100,
