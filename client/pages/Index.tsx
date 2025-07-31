@@ -460,6 +460,7 @@ function Earth() {
   const cloudsRef = useRef<THREE.Mesh>(null);
   const atmosphereRef = useRef<THREE.Mesh>(null);
   const nightLightsRef = useRef<THREE.Mesh>(null);
+  const { theme } = useTheme();
 
   // Create highly realistic Earth materials
   const earthMaterial = useMemo(() => {
