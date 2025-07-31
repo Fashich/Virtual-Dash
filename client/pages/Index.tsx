@@ -1726,10 +1726,10 @@ export default function Index() {
       <div className="relative z-20">
         {/* Professional Navbar */}
         <nav
-          className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl transition-all duration-500 ${
+          className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-2xl transition-all duration-500 ${
             theme === "light"
-              ? "bg-white/40 border-gray-200/40"
-              : "bg-black/30 border-white/10"
+              ? "bg-white/20 border-gray-200/20"
+              : "bg-black/15 border-white/5"
           } border-b`}
         >
           <div className="container mx-auto px-6 py-4">
@@ -1740,19 +1740,10 @@ export default function Index() {
                   <img
                     src="https://cdn.builder.io/api/v1/image/assets%2F61bb2c2b59304a3e8ff6f05c93913451%2Fb4dbc5f8d01c47418626106a29f0d54b?format=webp&width=800"
                     alt="Virtual Dash Logo"
-                    className="w-10 h-10 rounded-lg object-cover"
+                    className="w-12 h-12 rounded-lg object-cover"
                   />
                   <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg blur opacity-30"></div>
                 </div>
-                <h1
-                  className={`text-2xl font-bold bg-gradient-to-r ${
-                    theme === "light"
-                      ? "from-gray-800 to-blue-600"
-                      : "from-white to-blue-200"
-                  } bg-clip-text text-transparent`}
-                >
-                  Virtual Dash
-                </h1>
               </div>
 
               {/* Navigation Buttons */}
@@ -1792,10 +1783,40 @@ export default function Index() {
         <div className="pt-24 pb-12 md:pt-32 md:pb-20">
           <div className="container mx-auto px-6 text-center">
             <div className="max-w-5xl mx-auto">
-              {/* Main Title */}
+              {/* Main Title with Animated Gradient */}
               <h1 className="text-5xl md:text-7xl font-bold mb-8">
-                <span className="block bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
-                  Virtual Dash
+                <span className="block relative overflow-hidden">
+                  <span
+                    className="bg-gradient-to-r from-cyan-400 via-blue-500 via-purple-600 via-pink-500 via-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent animate-gradient-x bg-[length:400%_400%] hover:animate-pulse transition-all duration-300 cursor-default"
+                    style={{
+                      backgroundImage: 'linear-gradient(-45deg, #22d3ee, #3b82f6, #8b5cf6, #ec4899, #f59e0b, #22d3ee, #3b82f6, #8b5cf6)',
+                      backgroundSize: '400% 400%',
+                      animation: 'gradientShift 6s ease infinite, textGlow 3s ease-in-out infinite'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.animation = 'gradientShift 1s ease infinite, textGlow 0.5s ease-in-out infinite, textPulse 0.3s ease-in-out';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.animation = 'gradientShift 6s ease infinite, textGlow 3s ease-in-out infinite';
+                    }}
+                  >
+                    Virtual Dash
+                  </span>
+                  {/* Floating particles effect */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    {[...Array(6)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="absolute w-1 h-1 bg-gradient-to-r from-cyan-400 to-purple-600 rounded-full opacity-60 animate-float"
+                        style={{
+                          left: `${20 + i * 15}%`,
+                          top: `${30 + (i % 2) * 40}%`,
+                          animationDelay: `${i * 0.5}s`,
+                          animationDuration: '4s'
+                        }}
+                      />
+                    ))}
+                  </div>
                 </span>
               </h1>
 
