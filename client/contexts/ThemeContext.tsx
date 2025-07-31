@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 
 type Theme = "light" | "dark";
 
@@ -6,6 +6,9 @@ interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
+  isTransitioning: boolean;
+  requestThemeChange: (targetTheme: Theme) => void;
+  completeThemeTransition: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -24,6 +27,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return "dark"; // Default to dark for space theme
   });
 
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [pendingTheme, setPendingTheme] = useState<Theme | null>(null);
+  const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     localStorage.setItem("theme", theme);
 
@@ -36,11 +43,69 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme((prev) => (prev === "light" ? "dark" : "light"));
+    const targetTheme = theme === "light" ? "dark" : "light";
+    requestThemeChange(targetTheme);
   };
 
+  const requestThemeChange = (targetTheme: Theme) => {
+    if (isTransitioning || targetTheme === theme) return;
+
+    setIsTransitioning(true);
+    setPendingTheme(targetTheme);
+
+    // Clear any existing timeout
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
+    }
+
+    // For switching to light theme, wait for camera to reach Earth (5 seconds)
+    // For switching to dark theme, apply immediately with smooth reverse animation
+    if (targetTheme === "light") {
+      // Wait for camera animation to complete before switching to light theme
+      transitionTimeoutRef.current = setTimeout(() => {
+        setTheme(targetTheme);
+        setPendingTheme(null);
+        setIsTransitioning(false);
+      }, 5000); // 5 seconds for camera to reach Earth
+    } else {
+      // Dark theme can switch immediately with reverse animation
+      setTheme(targetTheme);
+      transitionTimeoutRef.current = setTimeout(() => {
+        setPendingTheme(null);
+        setIsTransitioning(false);
+      }, 6000); // 6 seconds for full reverse animation
+    }
+  };
+
+  const completeThemeTransition = () => {
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
+    }
+    if (pendingTheme) {
+      setTheme(pendingTheme);
+    }
+    setPendingTheme(null);
+    setIsTransitioning(false);
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{
+      theme,
+      toggleTheme,
+      setTheme,
+      isTransitioning,
+      requestThemeChange,
+      completeThemeTransition
+    }}>
       {children}
     </ThemeContext.Provider>
   );
