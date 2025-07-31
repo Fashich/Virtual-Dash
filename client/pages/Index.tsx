@@ -425,44 +425,77 @@ function AtmosphericSky() {
   );
 }
 
-// Ground/Horizon for Earth Surface Feel
+// Professional Realistic Earth Surface
 function EarthSurface() {
   const { theme } = useTheme();
   const groundRef = useRef<THREE.Mesh>(null);
   const horizonRef = useRef<THREE.Mesh>(null);
+  const detailGroundRef = useRef<THREE.Mesh>(null);
 
+  // Enhanced realistic ground material with detailed textures
   const groundMaterial = useMemo(() => {
     return new THREE.MeshLambertMaterial({
       map: new THREE.TextureLoader().load(
-        "data:image/svg+xml;base64," +
+        "data:image/svg+xml;base64=" +
           btoa(`
-        <svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+        <svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <radialGradient id="grass" cx="50%" cy="50%">
-              <stop offset="0%" style="stop-color:#4a7c59"/>
-              <stop offset="50%" style="stop-color:#2d5a3d"/>
-              <stop offset="100%" style="stop-color:#1a3324"/>
+            <radialGradient id="richEarth" cx="50%" cy="50%">
+              <stop offset="0%" style="stop-color:#3a5f3a"/>
+              <stop offset="30%" style="stop-color:#2d4f2d"/>
+              <stop offset="60%" style="stop-color:#1e3a1e"/>
+              <stop offset="100%" style="stop-color:#0f240f"/>
+            </radialGradient>
+            <linearGradient id="grassPatch" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#4a7c4a"/>
+              <stop offset="50%" style="stop-color:#5d8a5d"/>
+              <stop offset="100%" style="stop-color:#70a070"/>
+            </linearGradient>
+            <radialGradient id="dirtPatch" cx="60%" cy="40%">
+              <stop offset="0%" style="stop-color:#8b6f47"/>
+              <stop offset="50%" style="stop-color:#705440"/>
+              <stop offset="100%" style="stop-color:#523d2a"/>
             </radialGradient>
           </defs>
-          <rect width="512" height="512" fill="url(#grass)"/>
 
-          <!-- Grass texture pattern -->
-          <circle cx="100" cy="100" r="3" fill="#5d8a6a" opacity="0.6"/>
-          <circle cx="200" cy="150" r="2" fill="#5d8a6a" opacity="0.7"/>
-          <circle cx="350" cy="80" r="4" fill="#5d8a6a" opacity="0.5"/>
-          <circle cx="450" cy="200" r="2" fill="#5d8a6a" opacity="0.8"/>
-          <circle cx="80" cy="300" r="3" fill="#5d8a6a" opacity="0.6"/>
-          <circle cx="300" cy="400" r="2" fill="#5d8a6a" opacity="0.7"/>
+          <!-- Rich earth base -->
+          <rect width="1024" height="1024" fill="url(#richEarth)"/>
 
-          <!-- Small hills pattern -->
-          <ellipse cx="150" cy="480" rx="80" ry="15" fill="#3e6b4a" opacity="0.4"/>
-          <ellipse cx="400" cy="490" rx="60" ry="10" fill="#3e6b4a" opacity="0.3"/>
+          <!-- Grass patches -->
+          <ellipse cx="200" cy="300" rx="120" ry="80" fill="url(#grassPatch)" opacity="0.8"/>
+          <ellipse cx="600" cy="200" rx="100" ry="90" fill="url(#grassPatch)" opacity="0.7"/>
+          <ellipse cx="800" cy="500" rx="90" ry="70" fill="url(#grassPatch)" opacity="0.8"/>
+          <ellipse cx="300" cy="700" rx="110" ry="85" fill="url(#grassPatch)" opacity="0.75"/>
+
+          <!-- Dirt and rock patches -->
+          <ellipse cx="400" cy="150" rx="60" ry="40" fill="url(#dirtPatch)" opacity="0.6"/>
+          <ellipse cx="150" cy="600" rx="50" ry="35" fill="url(#dirtPatch)" opacity="0.7"/>
+          <ellipse cx="700" cy="350" rx="45" ry="30" fill="url(#dirtPatch)" opacity="0.5"/>
+
+          <!-- Small grass tufts -->
+          <circle cx="180" cy="250" r="8" fill="#6bb26b" opacity="0.9"/>
+          <circle cx="350" cy="320" r="6" fill="#6bb26b" opacity="0.8"/>
+          <circle cx="650" cy="180" r="7" fill="#6bb26b" opacity="0.85"/>
+          <circle cx="750" cy="450" r="9" fill="#6bb26b" opacity="0.9"/>
+          <circle cx="280" cy="650" r="5" fill="#6bb26b" opacity="0.8"/>
+          <circle cx="850" cy="600" r="6" fill="#6bb26b" opacity="0.85"/>
+
+          <!-- Small rocks and pebbles -->
+          <circle cx="120" cy="400" r="4" fill="#606060" opacity="0.7"/>
+          <circle cx="480" cy="280" r="3" fill="#707070" opacity="0.6"/>
+          <circle cx="720" cy="720" r="5" fill="#656565" opacity="0.8"/>
+          <circle cx="350" cy="500" r="3" fill="#606060" opacity="0.7"/>
+
+          <!-- Natural wear patterns -->
+          <path d="M100 200 Q300 180 500 200 Q700 220 900 200" stroke="#4a5f4a" stroke-width="3" fill="none" opacity="0.3"/>
+          <path d="M150 600 Q400 580 650 600 Q800 620 950 600" stroke="#4a5f4a" stroke-width="2" fill="none" opacity="0.4"/>
         </svg>
       `),
       ),
-      color: new THREE.Color(0.3, 0.6, 0.3),
+      color: new THREE.Color(0.4, 0.7, 0.4),
       transparent: true,
       opacity: theme === "light" ? 1.0 : 0.0,
+      roughness: 0.8,
     });
   }, [theme]);
 
