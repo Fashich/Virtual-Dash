@@ -1593,7 +1593,7 @@ function SpaceScene() {
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: true }}
       >
-        <CameraController theme={theme} pendingTheme={pendingTheme} isTransitioning={isTransitioning} cameraReachedGround={() => {}} />
+        <CameraController theme={theme} pendingTheme={pendingTheme} isTransitioning={isTransitioning} cameraReachedGround={cameraReachedGround} />
         <DynamicLighting theme={theme} />
 
         {/* Atmospheric Sky for Light Theme */}
