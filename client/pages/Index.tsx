@@ -323,9 +323,11 @@ export default function Index() {
               {/* Logo Section */}
               <div className="flex items-center space-x-3">
                 <div className="relative">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <Rocket className="w-6 h-6 text-white" />
-                  </div>
+                  <img
+                    src="https://cdn.builder.io/api/v1/image/assets%2F61bb2c2b59304a3e8ff6f05c93913451%2Fb4dbc5f8d01c47418626106a29f0d54b?format=webp&width=800"
+                    alt="Virtual Dash Logo"
+                    className="w-10 h-10 rounded-lg object-cover"
+                  />
                   <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg blur opacity-30"></div>
                 </div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
@@ -370,7 +372,6 @@ export default function Index() {
             <div className="max-w-5xl mx-auto">
               {/* Main Title */}
               <h1 className="text-5xl md:text-7xl font-bold mb-8">
-                <span className="block text-white mb-2">Welcome to</span>
                 <span className="block bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
                   Virtual Dash
                 </span>
