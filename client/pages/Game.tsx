@@ -1,6 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useGame } from '@/contexts/GameContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -22,6 +24,7 @@ interface GameObject {
 
 export default function Game() {
   const { state, dispatch } = useGame();
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const [playerPosition, setPlayerPosition] = useState<[number, number, number]>([0, 1, 0]);
   const [isJumping, setIsJumping] = useState(false);
@@ -240,12 +243,13 @@ export default function Game() {
           </Card>
 
           <div className="flex gap-1 md:gap-2">
+            <ThemeToggle />
             {!responsive.isMobile && (
-              <Button onClick={toggleSound} variant="outline" size="sm" title="Toggle Sound">
+              <Button onClick={toggleSound} variant="outline" size="sm" title="Toggle Sound" className={theme === 'light' ? 'bg-white/20 border-gray-300/20 text-gray-800 hover:bg-gray-100/10' : 'bg-black/20 border-white/20 text-white hover:bg-white/10'}>
                 {soundManager.isEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
               </Button>
             )}
-            <Button onClick={goHome} variant="outline" size="sm" title="Home">
+            <Button onClick={goHome} variant="outline" size="sm" title="Home" className={theme === 'light' ? 'bg-white/20 border-gray-300/20 text-gray-800 hover:bg-gray-100/10' : 'bg-black/20 border-white/20 text-white hover:bg-white/10'}>
               <Home className="w-3 h-3 md:w-4 md:h-4" />
             </Button>
             {state.currentGame.isPlaying && !responsive.isMobile && (
