@@ -20,62 +20,66 @@ import {
   ArrowLeft,
   Gamepad2,
   Mail,
+  LogIn,
   UserCheck,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export default function Signup() {
+export default function Login() {
   const navigate = useNavigate();
   const { dispatch } = useGame();
   const { connectWallet, isConnecting, error } = useWeb3();
   const { theme } = useTheme();
-  const [playerName, setPlayerName] = useState("");
-  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
-  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState("");
 
-  const handleCreateAccount = async () => {
-    if (!playerName.trim() || !username.trim() || !email.trim()) {
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      setLoginError("Please fill in all fields");
       return;
     }
 
-    setIsCreatingAccount(true);
+    setIsLoggingIn(true);
+    setLoginError("");
 
     try {
-      // Create player account
+      // Simulate login process
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // For demo purposes, any email/password combination works
       const playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
       dispatch({
         type: "UPDATE_PLAYER",
         payload: {
           id: playerId,
-          name: playerName.trim(),
-          username: username.trim(),
+          name: email.split("@")[0], // Use email prefix as display name
           email: email.trim(),
-          coins: 1000, // Starting coins
-          diamonds: 10, // Starting diamonds
+          coins: 2500, // Returning player bonus
+          diamonds: 25, // Returning player bonus
         },
       });
 
-      // Simulate account creation delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      setIsCreatingAccount(false);
+      setIsLoggingIn(false);
       navigate("/");
     } catch (error) {
-      setIsCreatingAccount(false);
-      console.error("Error creating account:", error);
+      setIsLoggingIn(false);
+      setLoginError("Login failed. Please try again.");
+      console.error("Error logging in:", error);
     }
   };
 
-  const handleWalletSignup = async () => {
+  const handleWalletLogin = async () => {
     try {
       await connectWallet();
       if (!error) {
-        // Auto-generate player name from wallet address
-        const address = ""; // Will be updated by wallet connection
-        const defaultName = `Player_${address.slice(-6)}`;
-        setPlayerName(defaultName);
+        // Auto-login with wallet
+        navigate("/");
       }
     } catch (error) {
       console.error("Wallet connection error:", error);
@@ -113,40 +117,40 @@ export default function Signup() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
-            <Gamepad2 className="w-8 h-8 text-blue-400" />
+            <img
+              src="https://cdn.builder.io/api/v1/image/assets%2F61bb2c2b59304a3e8ff6f05c93913451%2Fb4dbc5f8d01c47418626106a29f0d54b?format=webp&width=800"
+              alt="Virtual Dash Logo"
+              className="w-8 h-8 rounded-lg object-cover"
+            />
             <h1 className="text-2xl font-bold text-white">Virtual Dash</h1>
           </div>
-          <h2 className="text-3xl font-bold text-white mb-2">
-            Join the Adventure
-          </h2>
+          <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>
           <p className="text-gray-300">
-            Create your player profile and start your journey
+            Sign in to continue your space adventure
           </p>
         </div>
 
-        {/* Signup Form */}
+        {/* Login Form */}
         <Card
           className={`${theme === "light" ? "bg-white/80 border-gray-200" : "bg-black/20 border-gray-700"} backdrop-blur-sm`}
         >
           <CardHeader>
-            <CardTitle className="text-white text-center">
-              Create Account
-            </CardTitle>
+            <CardTitle className="text-white text-center">Sign In</CardTitle>
             <CardDescription className="text-gray-300 text-center">
-              Choose your signup method and create your player profile
+              Access your player profile and continue your journey
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Web3 Wallet Signup */}
+            {/* Web3 Wallet Login */}
             <div className="space-y-4">
               <Button
-                onClick={handleWalletSignup}
+                onClick={handleWalletLogin}
                 disabled={isConnecting}
                 className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
                 size="lg"
               >
                 <Wallet className="w-5 h-5 mr-2" />
-                {isConnecting ? "Connecting..." : "Connect Wallet & Signup"}
+                {isConnecting ? "Connecting..." : "Connect Wallet & Sign In"}
               </Button>
 
               {error && (
@@ -167,36 +171,8 @@ export default function Signup() {
               </div>
             </div>
 
-            {/* Traditional Signup */}
+            {/* Traditional Login */}
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="playerName" className="text-white">
-                  Display Name
-                </Label>
-                <Input
-                  id="playerName"
-                  placeholder="Enter your display name"
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
-                  className="bg-black/20 border-gray-600 text-white placeholder:text-gray-400"
-                  maxLength={20}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="username" className="text-white">
-                  Username
-                </Label>
-                <Input
-                  id="username"
-                  placeholder="Enter your username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="bg-black/20 border-gray-600 text-white placeholder:text-gray-400"
-                  maxLength={15}
-                />
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-white">
                   Email
@@ -211,50 +187,81 @@ export default function Signup() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-white">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="bg-black/20 border-gray-600 text-white placeholder:text-gray-400 pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {loginError && (
+                <Alert className="border-red-500/50 bg-red-500/10">
+                  <AlertDescription className="text-red-300">
+                    {loginError}
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <Button
-                onClick={handleCreateAccount}
-                disabled={
-                  !playerName.trim() ||
-                  !username.trim() ||
-                  !email.trim() ||
-                  isCreatingAccount
-                }
-                className="w-full"
-                variant="outline"
+                onClick={handleLogin}
+                disabled={!email.trim() || !password.trim() || isLoggingIn}
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
                 size="lg"
               >
-                <User className="w-5 h-5 mr-2" />
-                {isCreatingAccount ? "Creating Account..." : "Create Account"}
+                <LogIn className="w-5 h-5 mr-2" />
+                {isLoggingIn ? "Signing In..." : "Sign In"}
               </Button>
             </div>
 
-            {/* Benefits */}
-            <div className="mt-8 p-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-lg border border-green-500/20">
+            {/* Benefits for Returning Players */}
+            <div className="mt-8 p-4 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-lg border border-emerald-500/20">
               <h3 className="text-white font-semibold mb-2">
-                Starting Rewards
+                Welcome Back Bonus
               </h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                  <span className="text-gray-300">1,000 Coins</span>
+                  <span className="text-gray-300">+2,500 Coins</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                  <span className="text-gray-300">10 Diamonds</span>
+                  <span className="text-gray-300">+25 Diamonds</span>
                 </div>
               </div>
             </div>
 
-            {/* Login Alternative */}
+            {/* Signup Alternative */}
             <div className="text-center space-y-3">
               <p className="text-gray-400 text-sm">
-                Already have an account?{" "}
+                Don't have an account?{" "}
                 <Button
                   variant="link"
                   className="text-blue-400 hover:text-blue-300 p-0 h-auto"
-                  onClick={() => navigate("/login")}
+                  onClick={() => navigate("/signup")}
                 >
-                  Sign In
+                  Sign Up
                 </Button>
               </p>
 
@@ -292,12 +299,12 @@ export default function Signup() {
         {/* Features Preview */}
         <div className="mt-8 grid grid-cols-2 gap-4 text-center">
           <Card className="bg-black/10 border-gray-700 p-4">
-            <div className="text-2xl mb-2">🎮</div>
-            <div className="text-white text-sm font-medium">3D Gameplay</div>
+            <div className="text-2xl mb-2">🚀</div>
+            <div className="text-white text-sm font-medium">Space Racing</div>
           </Card>
           <Card className="bg-black/10 border-gray-700 p-4">
-            <div className="text-2xl mb-2">💎</div>
-            <div className="text-white text-sm font-medium">Earn Rewards</div>
+            <div className="text-2xl mb-2">⭐</div>
+            <div className="text-white text-sm font-medium">Cosmic Rewards</div>
           </Card>
         </div>
       </div>
