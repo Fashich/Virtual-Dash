@@ -9,6 +9,8 @@ interface ThemeContextType {
   isTransitioning: boolean;
   requestThemeChange: (targetTheme: Theme) => void;
   completeThemeTransition: () => void;
+  pendingTheme: Theme | null;
+  cameraReachedGround: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -58,15 +60,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(transitionTimeoutRef.current);
     }
 
-    // For switching to light theme, wait for camera to reach Earth (5 seconds)
+    // For switching to light theme, wait much longer for camera to fully land on Earth
     // For switching to dark theme, apply immediately with smooth reverse animation
     if (targetTheme === "light") {
-      // Wait for camera animation to complete before switching to light theme
+      // Wait for camera to completely land on Earth before switching theme
+      // This gives time for the full 3-stage animation to complete and camera to settle on ground
       transitionTimeoutRef.current = setTimeout(() => {
         setTheme(targetTheme);
         setPendingTheme(null);
         setIsTransitioning(false);
-      }, 5000); // 5 seconds for camera to reach Earth
+      }, 8000); // 8 seconds to ensure camera fully lands on Earth
     } else {
       // Dark theme can switch immediately with reverse animation
       setTheme(targetTheme);
