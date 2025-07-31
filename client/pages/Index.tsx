@@ -259,6 +259,94 @@ function AtmosphericSky() {
   );
 }
 
+// Ground/Horizon for Earth Surface Feel
+function EarthSurface() {
+  const { theme } = useTheme();
+  const groundRef = useRef<THREE.Mesh>(null);
+  const horizonRef = useRef<THREE.Mesh>(null);
+
+  const groundMaterial = useMemo(() => {
+    return new THREE.MeshLambertMaterial({
+      map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+        <svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="grass" cx="50%" cy="50%">
+              <stop offset="0%" style="stop-color:#4a7c59"/>
+              <stop offset="50%" style="stop-color:#2d5a3d"/>
+              <stop offset="100%" style="stop-color:#1a3324"/>
+            </radialGradient>
+          </defs>
+          <rect width="512" height="512" fill="url(#grass)"/>
+
+          <!-- Grass texture pattern -->
+          <circle cx="100" cy="100" r="3" fill="#5d8a6a" opacity="0.6"/>
+          <circle cx="200" cy="150" r="2" fill="#5d8a6a" opacity="0.7"/>
+          <circle cx="350" cy="80" r="4" fill="#5d8a6a" opacity="0.5"/>
+          <circle cx="450" cy="200" r="2" fill="#5d8a6a" opacity="0.8"/>
+          <circle cx="80" cy="300" r="3" fill="#5d8a6a" opacity="0.6"/>
+          <circle cx="300" cy="400" r="2" fill="#5d8a6a" opacity="0.7"/>
+
+          <!-- Small hills pattern -->
+          <ellipse cx="150" cy="480" rx="80" ry="15" fill="#3e6b4a" opacity="0.4"/>
+          <ellipse cx="400" cy="490" rx="60" ry="10" fill="#3e6b4a" opacity="0.3"/>
+        </svg>
+      `)),
+      color: new THREE.Color(0.3, 0.6, 0.3),
+      transparent: true,
+      opacity: theme === 'light' ? 1.0 : 0.0
+    });
+  }, [theme]);
+
+  const horizonMaterial = useMemo(() => {
+    return new THREE.MeshBasicMaterial({
+      map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+        <svg width="1024" height="128" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="horizon" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:#87CEEB"/>
+              <stop offset="50%" style="stop-color:#B0E0E6"/>
+              <stop offset="100%" style="stop-color:#228B22"/>
+            </linearGradient>
+          </defs>
+          <rect width="1024" height="128" fill="url(#horizon)"/>
+
+          <!-- Distant hills silhouette -->
+          <path d="M0 100 Q200 80 400 90 Q600 85 800 95 Q900 90 1024 100 L1024 128 L0 128 Z" fill="#2F4F4F" opacity="0.6"/>
+          <path d="M0 110 Q150 95 300 105 Q500 100 700 108 Q850 105 1024 110 L1024 128 L0 128 Z" fill="#2F4F4F" opacity="0.4"/>
+        </svg>
+      `)),
+      transparent: true,
+      opacity: theme === 'light' ? 0.8 : 0.0,
+      side: THREE.DoubleSide
+    });
+  }, [theme]);
+
+  useFrame(() => {
+    if (groundRef.current) {
+      groundRef.current.material.opacity = theme === 'light' ? 1.0 : 0.0;
+    }
+    if (horizonRef.current) {
+      horizonRef.current.material.opacity = theme === 'light' ? 0.8 : 0.0;
+    }
+  });
+
+  if (theme !== 'light') return null;
+
+  return (
+    <>
+      {/* Ground Plane */}
+      <mesh ref={groundRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -2, 0]} material={groundMaterial}>
+        <planeGeometry args={[200, 200]} />
+      </mesh>
+
+      {/* Horizon Ring */}
+      <mesh ref={horizonRef} position={[0, 20, 0]} material={horizonMaterial}>
+        <cylinderGeometry args={[80, 80, 20, 32, 1, true]} />
+      </mesh>
+    </>
+  );
+}
+
 // Realistic Earth Component
 function Earth() {
   const earthRef = useRef<THREE.Mesh>(null);
@@ -712,20 +800,30 @@ function Sun() {
       
       {/* Dynamic Sun Light */}
       <pointLight
-        intensity={theme === 'light' ? 5.0 : 3.5}
+        intensity={theme === 'light' ? 4.0 : 3.5}
         color={new THREE.Color(1.0, 0.95, 0.8)}
-        distance={200}
-        decay={1.5}
+        distance={300}
+        decay={1.2}
       />
-      
+
       {/* Secondary warm light */}
       <pointLight
         position={[5, 0, 0]}
-        intensity={theme === 'light' ? 2.0 : 1.2}
+        intensity={theme === 'light' ? 1.5 : 1.2}
         color={new THREE.Color(1.0, 0.7, 0.4)}
-        distance={100}
-        decay={2}
+        distance={150}
+        decay={1.8}
       />
+
+      {/* Directional sunlight for ground view */}
+      {theme === 'light' && (
+        <directionalLight
+          position={[-40, 60, -20]}
+          intensity={2.0}
+          color={new THREE.Color(1.0, 0.98, 0.9)}
+          castShadow
+        />
+      )}
     </group>
   );
 }
@@ -1020,6 +1118,9 @@ function SpaceScene() {
         
         {/* Realistic 3D Clouds for Light Theme */}
         <RealisticClouds />
+
+        {/* Earth Surface Elements */}
+        <EarthSurface />
         
         {/* Additional Effects */}
         <DreiSparkles 
