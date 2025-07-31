@@ -1264,6 +1264,31 @@ function RealisticAsteroid({
     });
   }, [asteroidType, colorVariant, hovered]);
 
+  // Create variations of the base material for different parts
+  const createVariationMaterial = (index: number) => {
+    const baseColors = [
+      new THREE.Color(0.7, 0.5, 0.3), // Rocky brown
+      new THREE.Color(0.8, 0.6, 0.4), // Sandy brown
+      new THREE.Color(0.6, 0.6, 0.7), // Bluish gray
+      new THREE.Color(0.9, 0.7, 0.5), // Light tan
+    ];
+
+    const baseColor = baseColors[asteroidType];
+    const variation = (index * 0.1) + (colorVariant - 0.5) * 0.2;
+
+    return new THREE.MeshStandardMaterial({
+      color: new THREE.Color(
+        Math.max(0.35, Math.min(0.95, baseColor.r + variation)),
+        Math.max(0.35, Math.min(0.95, baseColor.g + variation)),
+        Math.max(0.35, Math.min(0.95, baseColor.b + variation))
+      ),
+      roughness: 0.6 + Math.random() * 0.3,
+      metalness: 0.08 + Math.random() * 0.15,
+      emissive: hovered ? new THREE.Color(0.2, 0.15, 0.1) : new THREE.Color(0.03, 0.03, 0.03),
+      emissiveIntensity: hovered ? 0.3 : 0.05,
+    });
+  };
+
   // Create realistic irregular asteroid geometry
   const createAsteroidGeometry = (type: number, baseSize: number) => {
     const geometries: JSX.Element[] = [];
@@ -1276,12 +1301,12 @@ function RealisticAsteroid({
           </mesh>
         );
         geometries.push(
-          <mesh key="chunk1" position={[baseSize * 0.6, baseSize * 0.3, -baseSize * 0.2]} material={asteroidMaterial}>
+          <mesh key="chunk1" position={[baseSize * 0.6, baseSize * 0.3, -baseSize * 0.2]} material={createVariationMaterial(1)}>
             <boxGeometry args={[baseSize * 0.5, baseSize * 0.7, baseSize * 0.6]} />
           </mesh>
         );
         geometries.push(
-          <mesh key="chunk2" position={[-baseSize * 0.4, -baseSize * 0.2, baseSize * 0.4]} material={asteroidMaterial}>
+          <mesh key="chunk2" position={[-baseSize * 0.4, -baseSize * 0.2, baseSize * 0.4]} material={createVariationMaterial(2)}>
             <boxGeometry args={[baseSize * 0.6, baseSize * 0.4, baseSize * 0.5]} />
           </mesh>
         );
