@@ -1577,7 +1577,7 @@ function DynamicLighting({ theme }: { theme: string }) {
 
 // Main 3D Space Scene
 function SpaceScene() {
-  const { theme, pendingTheme, isTransitioning } = useTheme();
+  const { theme, pendingTheme, isTransitioning, cameraReachedGround } = useTheme();
 
   const backgroundGradient =
     theme === "light"
