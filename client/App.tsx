@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Game from "./pages/Game";
 import Signup from "./pages/Signup";
+import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import Upgrade from "./pages/Upgrade";
 import TopUp from "./pages/TopUp";
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/game" element={<Game />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/upgrade" element={<Upgrade />} />
             <Route path="/topup" element={<TopUp />} />
