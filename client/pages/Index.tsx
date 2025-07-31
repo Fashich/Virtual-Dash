@@ -26,6 +26,198 @@ import {
   Sparkles
 } from 'lucide-react';
 
+// Camera Controller for smooth theme transitions
+function CameraController() {
+  const { camera } = useThree();
+  const { theme } = useTheme();
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  const { position, fov } = useSpring({
+    position: theme === 'light' 
+      ? [8, 3, 15] as [number, number, number]  // Close to Earth surface
+      : [0, 0, 20] as [number, number, number], // Space view
+    fov: theme === 'light' ? 85 : 75,
+    config: { 
+      tension: 80, 
+      friction: 40,
+      duration: 3000 // 3 second smooth transition
+    },
+    onStart: () => setIsTransitioning(true),
+    onRest: () => setIsTransitioning(false)
+  });
+
+  useFrame(() => {
+    camera.position.lerp(
+      new THREE.Vector3(position.get()[0], position.get()[1], position.get()[2]), 
+      0.02
+    );
+    camera.fov = fov.get();
+    camera.updateProjectionMatrix();
+    
+    // Look at Earth when in light mode, space when in dark mode
+    const target = theme === 'light' 
+      ? new THREE.Vector3(20, 5, -30) // Look at Earth
+      : new THREE.Vector3(0, 0, 0);   // Look at center
+    
+    camera.lookAt(target);
+  });
+
+  return null;
+}
+
+// Realistic 3D Clouds for Light Theme
+function RealisticClouds() {
+  const { theme } = useTheme();
+  const cloudsGroupRef = useRef<THREE.Group>(null);
+  
+  // Create multiple cloud layers with different sizes and heights
+  const cloudLayers = useMemo(() => {
+    return Array.from({ length: 25 }, (_, i) => ({
+      id: i,
+      position: [
+        (Math.random() - 0.5) * 80,
+        5 + Math.random() * 15,
+        -20 + (Math.random() - 0.5) * 60
+      ] as [number, number, number],
+      scale: 0.8 + Math.random() * 2.5,
+      speed: 0.002 + Math.random() * 0.008,
+      opacity: 0.3 + Math.random() * 0.4
+    }));
+  }, []);
+
+  useFrame((state) => {
+    if (cloudsGroupRef.current && theme === 'light') {
+      cloudsGroupRef.current.children.forEach((cloud, index) => {
+        const layer = cloudLayers[index];
+        if (cloud && layer) {
+          cloud.position.x += layer.speed;
+          if (cloud.position.x > 40) {
+            cloud.position.x = -40;
+          }
+          cloud.rotation.y = state.clock.elapsedTime * 0.001;
+        }
+      });
+    }
+  });
+
+  if (theme !== 'light') return null;
+
+  return (
+    <group ref={cloudsGroupRef}>
+      {cloudLayers.map((layer) => (
+        <RealisticCloud
+          key={layer.id}
+          position={layer.position}
+          scale={layer.scale}
+          opacity={layer.opacity}
+        />
+      ))}
+    </group>
+  );
+}
+
+// Individual Realistic Cloud Component
+function RealisticCloud({ position, scale, opacity }: {
+  position: [number, number, number];
+  scale: number;
+  opacity: number;
+}) {
+  const cloudRef = useRef<THREE.Group>(null);
+
+  const cloudMaterial = useMemo(() => {
+    return new THREE.MeshLambertMaterial({
+      color: new THREE.Color(0.95, 0.95, 1.0),
+      transparent: true,
+      opacity: opacity,
+      alphaTest: 0.1
+    });
+  }, [opacity]);
+
+  useFrame((state) => {
+    if (cloudRef.current) {
+      // Gentle floating animation
+      cloudRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.5 + position[0]) * 0.3;
+      cloudRef.current.rotation.y = state.clock.elapsedTime * 0.01;
+    }
+  });
+
+  return (
+    <group ref={cloudRef} position={position} scale={scale}>
+      {/* Main cloud body - irregular cluster of spheres */}
+      <mesh material={cloudMaterial} position={[0, 0, 0]}>
+        <sphereGeometry args={[1.5, 12, 8]} />
+      </mesh>
+      <mesh material={cloudMaterial} position={[1.2, 0.3, 0.2]}>
+        <sphereGeometry args={[1.2, 12, 8]} />
+      </mesh>
+      <mesh material={cloudMaterial} position={[-0.8, 0.1, -0.3]}>
+        <sphereGeometry args={[1.0, 12, 8]} />
+      </mesh>
+      <mesh material={cloudMaterial} position={[0.5, -0.2, 0.8]}>
+        <sphereGeometry args={[0.8, 12, 8]} />
+      </mesh>
+      <mesh material={cloudMaterial} position={[-1.1, -0.1, 0.5]}>
+        <sphereGeometry args={[0.9, 12, 8]} />
+      </mesh>
+      <mesh material={cloudMaterial} position={[2.0, -0.2, -0.1]}>
+        <sphereGeometry args={[0.7, 12, 8]} />
+      </mesh>
+      
+      {/* Wispy edges */}
+      <mesh material={cloudMaterial} position={[2.5, 0.1, 0.3]}>
+        <sphereGeometry args={[0.4, 8, 6]} />
+      </mesh>
+      <mesh material={cloudMaterial} position={[-1.8, 0.2, -0.2]}>
+        <sphereGeometry args={[0.5, 8, 6]} />
+      </mesh>
+    </group>
+  );
+}
+
+// Atmospheric Sky for Light Theme
+function AtmosphericSky() {
+  const { theme } = useTheme();
+  const skyRef = useRef<THREE.Mesh>(null);
+
+  const skyMaterial = useMemo(() => {
+    return new THREE.MeshBasicMaterial({
+      map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+        <svg width="512" height="256" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:#87CEEB"/>
+              <stop offset="30%" style="stop-color:#87CEFA"/>
+              <stop offset="60%" style="stop-color:#B0E0E6"/>
+              <stop offset="100%" style="stop-color:#F0F8FF"/>
+            </linearGradient>
+          </defs>
+          <rect width="512" height="256" fill="url(#skyGradient)"/>
+          
+          <!-- Sun glow effect -->
+          <circle cx="400" cy="80" r="60" fill="rgba(255,255,224,0.3)"/>
+          <circle cx="400" cy="80" r="40" fill="rgba(255,255,224,0.5)"/>
+          <circle cx="400" cy="80" r="20" fill="rgba(255,255,255,0.8)"/>
+        </svg>
+      `)),
+      side: THREE.BackSide,
+      transparent: true,
+      opacity: theme === 'light' ? 1.0 : 0.0
+    });
+  }, [theme]);
+
+  useFrame(() => {
+    if (skyRef.current) {
+      skyRef.current.material.opacity = theme === 'light' ? 1.0 : 0.0;
+    }
+  });
+
+  return (
+    <mesh ref={skyRef} material={skyMaterial}>
+      <sphereGeometry args={[100, 32, 16]} />
+    </mesh>
+  );
+}
+
 // Realistic Earth Component
 function Earth() {
   const earthRef = useRef<THREE.Mesh>(null);
@@ -63,35 +255,35 @@ function Earth() {
               <stop offset="100%" style="stop-color:#A0522D"/>
             </radialGradient>
           </defs>
-
+          
           <!-- Ocean base -->
           <rect width="1024" height="512" fill="url(#ocean)"/>
-
+          
           <!-- Africa & Europe -->
           <path d="M400 120 Q420 100 450 110 Q480 120 500 140 Q520 160 530 200 Q540 250 520 300 Q500 350 480 380 Q460 400 440 390 Q420 380 400 360 Q380 340 370 300 Q360 250 370 200 Q380 160 400 120 Z" fill="url(#landmass)"/>
-
+          
           <!-- North America -->
           <path d="M100 80 Q150 60 200 70 Q250 80 280 120 Q300 160 290 200 Q280 240 250 260 Q220 280 180 270 Q140 260 110 220 Q80 180 90 140 Q100 100 100 80 Z" fill="url(#forest)"/>
-
+          
           <!-- South America -->
           <path d="M180 280 Q200 270 220 280 Q240 300 250 340 Q260 380 250 420 Q240 460 220 480 Q200 490 180 480 Q160 470 150 440 Q140 400 150 360 Q160 320 180 280 Z" fill="url(#forest)"/>
-
+          
           <!-- Asia -->
           <path d="M550 90 Q600 70 650 80 Q700 90 750 120 Q800 150 820 190 Q840 230 830 270 Q820 310 800 340 Q780 360 750 350 Q720 340 690 320 Q660 300 630 270 Q600 240 580 200 Q560 160 550 120 Q540 100 550 90 Z" fill="url(#landmass)"/>
-
+          
           <!-- Australia -->
           <path d="M700 360 Q730 350 760 360 Q790 370 800 390 Q810 410 800 430 Q790 450 760 460 Q730 470 700 460 Q670 450 660 430 Q650 410 660 390 Q670 370 700 360 Z" fill="url(#desert)"/>
-
+          
           <!-- Greenland -->
           <ellipse cx="150" cy="40" rx="30" ry="20" fill="#F0F8FF"/>
-
+          
           <!-- Antarctic -->
           <rect x="0" y="480" width="1024" height="32" fill="#F0F8FF"/>
-
+          
           <!-- Additional forest areas -->
           <ellipse cx="650" cy="180" rx="40" ry="25" fill="url(#forest)"/>
           <ellipse cx="200" cy="400" rx="35" ry="60" fill="url(#forest)"/>
-
+          
           <!-- Desert areas -->
           <ellipse cx="480" cy="200" rx="30" ry="20" fill="url(#desert)"/>
           <ellipse cx="580" cy="160" rx="25" ry="15" fill="url(#desert)"/>
@@ -137,22 +329,22 @@ function Earth() {
             </radialGradient>
           </defs>
           <rect width="1024" height="512" fill="transparent"/>
-
+          
           <!-- Storm systems -->
           <ellipse cx="150" cy="80" rx="120" ry="40" fill="url(#cloud1)" filter="url(#blur)"/>
           <ellipse cx="350" cy="140" rx="100" ry="35" fill="url(#cloud2)" filter="url(#blur)"/>
           <ellipse cx="600" cy="90" rx="90" ry="30" fill="url(#cloud1)" filter="url(#blur)"/>
           <ellipse cx="800" cy="160" rx="110" ry="45" fill="url(#cloud2)" filter="url(#blur)"/>
-
+          
           <!-- Tropical clouds -->
           <ellipse cx="200" cy="250" rx="80" ry="25" fill="url(#cloud1)" filter="url(#blur)"/>
           <ellipse cx="450" cy="280" rx="95" ry="30" fill="url(#cloud2)" filter="url(#blur)"/>
           <ellipse cx="700" cy="320" rx="85" ry="28" fill="url(#cloud1)" filter="url(#blur)"/>
-
+          
           <!-- Polar clouds -->
           <ellipse cx="100" cy="40" rx="60" ry="20" fill="rgba(255,255,255,0.9)" filter="url(#blur)"/>
           <ellipse cx="900" cy="50" rx="70" ry="25" fill="rgba(255,255,255,0.8)" filter="url(#blur)"/>
-
+          
           <!-- Scattered clouds -->
           <circle cx="300" cy="200" r="30" fill="rgba(255,255,255,0.4)" filter="url(#blur)"/>
           <circle cx="550" cy="240" r="25" fill="rgba(255,255,255,0.5)" filter="url(#blur)"/>
@@ -181,24 +373,24 @@ function Earth() {
       map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
         <svg width="1024" height="512" xmlns="http://www.w3.org/2000/svg">
           <rect width="1024" height="512" fill="#000000"/>
-
+          
           <!-- City lights - North America -->
           <circle cx="150" cy="120" r="2" fill="#FFD700"/>
           <circle cx="180" cy="140" r="1.5" fill="#FFD700"/>
           <circle cx="200" cy="130" r="1" fill="#FFA500"/>
           <circle cx="220" cy="150" r="2" fill="#FFD700"/>
-
+          
           <!-- City lights - Europe -->
           <circle cx="420" cy="100" r="1.5" fill="#FFD700"/>
           <circle cx="440" cy="110" r="1" fill="#FFA500"/>
           <circle cx="460" cy="105" r="1.5" fill="#FFD700"/>
-
+          
           <!-- City lights - Asia -->
           <circle cx="620" cy="120" r="2" fill="#FFD700"/>
           <circle cx="650" cy="140" r="1.5" fill="#FFD700"/>
           <circle cx="680" cy="130" r="1" fill="#FFA500"/>
           <circle cx="720" cy="150" r="2" fill="#FFD700"/>
-
+          
           <!-- Smaller settlements -->
           <circle cx="250" cy="300" r="1" fill="#FFA500"/>
           <circle cx="500" cy="250" r="1" fill="#FFA500"/>
@@ -213,16 +405,16 @@ function Earth() {
 
   useFrame((state) => {
     if (earthRef.current) {
-      earthRef.current.rotation.y = state.clock.elapsedTime * 0.02; // Earth's rotation - 24 hours
+      earthRef.current.rotation.y = state.clock.elapsedTime * 0.02;
     }
     if (cloudsRef.current) {
-      cloudsRef.current.rotation.y = state.clock.elapsedTime * 0.025; // Clouds move slightly faster
+      cloudsRef.current.rotation.y = state.clock.elapsedTime * 0.025;
     }
     if (atmosphereRef.current) {
-      atmosphereRef.current.rotation.y = state.clock.elapsedTime * 0.01; // Atmosphere subtle rotation
+      atmosphereRef.current.rotation.y = state.clock.elapsedTime * 0.01;
     }
     if (nightLightsRef.current) {
-      nightLightsRef.current.rotation.y = state.clock.elapsedTime * 0.02; // Same as Earth
+      nightLightsRef.current.rotation.y = state.clock.elapsedTime * 0.02;
     }
   });
 
@@ -232,17 +424,17 @@ function Earth() {
       <mesh ref={earthRef} material={earthMaterial}>
         <sphereGeometry args={[6, 128, 64]} />
       </mesh>
-
+      
       {/* Night Lights */}
       <mesh ref={nightLightsRef} material={nightLightsMaterial}>
         <sphereGeometry args={[6.02, 64, 32]} />
       </mesh>
-
+      
       {/* Cloud Layer */}
       <mesh ref={cloudsRef} material={cloudMaterial}>
         <sphereGeometry args={[6.15, 64, 32]} />
       </mesh>
-
+      
       {/* Atmosphere Glow */}
       <mesh ref={atmosphereRef} material={atmosphereMaterial}>
         <sphereGeometry args={[6.8, 32, 16]} />
@@ -282,7 +474,6 @@ function Moon() {
 
   useFrame((state) => {
     if (moonRef.current) {
-      // Moon orbits around Earth
       const earthPosition = [20, 5, -30];
       const orbitRadius = 15;
       const orbitSpeed = 0.02;
@@ -291,10 +482,12 @@ function Moon() {
       moonRef.current.position.y = earthPosition[1] + Math.sin(state.clock.elapsedTime * orbitSpeed * 0.5) * 3;
       moonRef.current.position.z = earthPosition[2] + Math.sin(state.clock.elapsedTime * orbitSpeed) * orbitRadius;
       
-      // Moon rotation
       moonRef.current.rotation.y = state.clock.elapsedTime * 0.01;
     }
   });
+
+  // Hide moon in light theme for cleaner sky view
+  if (theme === 'light') return null;
 
   return (
     <mesh ref={moonRef} material={moonMaterial}>
@@ -337,10 +530,10 @@ function Sun() {
               <stop offset="100%" style="stop-color:#FF6347"/>
             </radialGradient>
           </defs>
-
+          
           <!-- Solar surface -->
           <rect width="512" height="256" fill="url(#sunCore)"/>
-
+          
           <!-- Solar granulation pattern -->
           <circle cx="100" cy="80" r="15" fill="#FFB347" opacity="0.6"/>
           <circle cx="200" cy="120" r="20" fill="#FFCCCB" opacity="0.5"/>
@@ -348,11 +541,11 @@ function Sun() {
           <circle cx="450" cy="140" r="12" fill="#FFCCCB" opacity="0.6"/>
           <circle cx="80" cy="180" r="16" fill="#FFB347" opacity="0.5"/>
           <circle cx="280" cy="200" r="22" fill="#FFCCCB" opacity="0.6"/>
-
+          
           <!-- Sunspots -->
           <ellipse cx="150" cy="100" rx="8" ry="12" fill="url(#sunspot1)"/>
           <ellipse cx="380" cy="160" rx="6" ry="9" fill="url(#sunspot2)"/>
-
+          
           <!-- Solar flares/prominences -->
           <path d="M480 100 Q490 80 500 90 Q510 100 500 110 Q490 120 480 100" fill="#FF69B4" opacity="0.8"/>
           <path d="M50 150 Q40 130 30 140 Q20 150 30 160 Q40 170 50 150" fill="#FF1493" opacity="0.7"/>
@@ -360,19 +553,19 @@ function Sun() {
       `)),
       color: new THREE.Color(1.0, 0.9, 0.8),
       emissive: new THREE.Color(1.0, 0.6, 0.2),
-      emissiveIntensity: 1.5
+      emissiveIntensity: theme === 'light' ? 0.8 : 1.5
     });
-  }, []);
+  }, [theme]);
 
   // Chromosphere layer
   const chromosphereMaterial = useMemo(() => {
     return new THREE.MeshBasicMaterial({
       color: new THREE.Color(1.0, 0.3, 0.1),
       transparent: true,
-      opacity: 0.4,
+      opacity: theme === 'light' ? 0.2 : 0.4,
       blending: THREE.AdditiveBlending
     });
-  }, []);
+  }, [theme]);
 
   // Corona material with realistic solar wind effect
   const coronaMaterial = useMemo(() => {
@@ -388,89 +581,85 @@ function Sun() {
             </radialGradient>
           </defs>
           <rect width="256" height="128" fill="url(#corona)"/>
-
+          
           <!-- Solar wind streams -->
-          <path d="M20 64 Q50 50 80 64 Q110 78 140 64 Q170 50 200 64 Q230 78 256 64"
+          <path d="M20 64 Q50 50 80 64 Q110 78 140 64 Q170 50 200 64 Q230 78 256 64" 
                 stroke="rgba(255,255,255,0.2)" stroke-width="2" fill="none"/>
-          <path d="M0 40 Q30 30 60 40 Q90 50 120 40 Q150 30 180 40 Q210 50 240 40"
+          <path d="M0 40 Q30 30 60 40 Q90 50 120 40 Q150 30 180 40 Q210 50 240 40" 
                 stroke="rgba(255,215,0,0.15)" stroke-width="1.5" fill="none"/>
-          <path d="M0 88 Q30 98 60 88 Q90 78 120 88 Q150 98 180 88 Q210 78 240 88"
+          <path d="M0 88 Q30 98 60 88 Q90 78 120 88 Q150 98 180 88 Q210 78 240 88" 
                 stroke="rgba(255,165,0,0.1)" stroke-width="1" fill="none"/>
         </svg>
       `)),
       transparent: true,
-      opacity: 0.6,
+      opacity: theme === 'light' ? 0.3 : 0.6,
       side: THREE.BackSide,
       blending: THREE.AdditiveBlending
     });
-  }, []);
+  }, [theme]);
 
   // Solar flare materials
   const flareMaterial = useMemo(() => {
     return new THREE.MeshBasicMaterial({
       color: new THREE.Color(1.0, 0.4, 0.6),
       transparent: true,
-      opacity: 0.8,
+      opacity: theme === 'light' ? 0.4 : 0.8,
       blending: THREE.AdditiveBlending
     });
-  }, []);
+  }, [theme]);
 
   useFrame((state) => {
     const time = state.clock.elapsedTime;
-
+    
     if (sunRef.current) {
-      // Solar rotation (about 25 days)
       sunRef.current.rotation.y = time * 0.003;
-
-      // Subtle pulsing for solar activity
       const solarPulse = 1 + Math.sin(time * 0.5) * 0.02;
       sunRef.current.scale.setScalar(solarPulse);
     }
-
+    
     if (chromosphereRef.current) {
       chromosphereRef.current.rotation.y = time * 0.005;
       const chromoPulse = 1 + Math.sin(time * 0.8) * 0.03;
       chromosphereRef.current.scale.setScalar(chromoPulse);
     }
-
+    
     if (coronaRef.current) {
       coronaRef.current.rotation.y = -time * 0.001;
       coronaRef.current.rotation.z = time * 0.002;
-
-      // Corona expansion/contraction
       const coronaPulse = 1 + Math.sin(time * 0.3) * 0.05;
       coronaRef.current.scale.setScalar(coronaPulse);
     }
-
-    // Solar flare animations
+    
     if (flareRef1.current) {
       flareRef1.current.rotation.z = time * 2;
       flareRef1.current.scale.setScalar(1 + Math.sin(time * 3) * 0.3);
     }
-
+    
     if (flareRef2.current) {
       flareRef2.current.rotation.z = -time * 1.5;
       flareRef2.current.scale.setScalar(1 + Math.cos(time * 2.5) * 0.2);
     }
   });
 
+  const sunPosition = theme === 'light' ? [-30, 15, -40] : [-70, 25, -90];
+
   return (
-    <group position={[-70, 25, -90]}>
+    <group position={sunPosition}>
       {/* Sun Core */}
       <mesh ref={sunRef} material={sunMaterial}>
         <sphereGeometry args={[12, 64, 32]} />
       </mesh>
-
+      
       {/* Chromosphere */}
       <mesh ref={chromosphereRef} material={chromosphereMaterial}>
         <sphereGeometry args={[12.5, 32, 16]} />
       </mesh>
-
+      
       {/* Corona */}
       <mesh ref={coronaRef} material={coronaMaterial}>
         <sphereGeometry args={[18, 32, 16]} />
       </mesh>
-
+      
       {/* Solar Flares */}
       <mesh ref={flareRef1} material={flareMaterial} position={[0, 8, 0]}>
         <coneGeometry args={[2, 6, 8]} />
@@ -478,19 +667,19 @@ function Sun() {
       <mesh ref={flareRef2} material={flareMaterial} position={[0, -8, 0]} rotation={[Math.PI, 0, 0]}>
         <coneGeometry args={[1.5, 4, 8]} />
       </mesh>
-
-      {/* Realistic Sun Light */}
+      
+      {/* Dynamic Sun Light */}
       <pointLight
-        intensity={3.5}
+        intensity={theme === 'light' ? 5.0 : 3.5}
         color={new THREE.Color(1.0, 0.95, 0.8)}
         distance={200}
         decay={1.5}
       />
-
+      
       {/* Secondary warm light */}
       <pointLight
         position={[5, 0, 0]}
-        intensity={1.2}
+        intensity={theme === 'light' ? 2.0 : 1.2}
         color={new THREE.Color(1.0, 0.7, 0.4)}
         distance={100}
         decay={2}
@@ -501,8 +690,9 @@ function Sun() {
 
 // Meteor Shower Component (keeping spheres only)
 function MeteorShower() {
+  const { theme } = useTheme();
   const meteors = useMemo(() => {
-    return Array.from({ length: 15 }, (_, i) => ({
+    return Array.from({ length: theme === 'light' ? 5 : 15 }, (_, i) => ({
       id: i,
       startPosition: [
         (Math.random() - 0.5) * 100,
@@ -513,7 +703,7 @@ function MeteorShower() {
       size: 0.2 + Math.random() * 0.6,
       delay: Math.random() * 10
     }));
-  }, []);
+  }, [theme]);
 
   return (
     <>
@@ -552,7 +742,6 @@ function Meteor({ startPosition, speed, size, delay }: {
         meteorRef.current.position.y = startPosition[1] + time * speed * -1;
         meteorRef.current.position.z = startPosition[2] + time * speed * 3;
         
-        // Reset position when meteor goes off screen
         if (meteorRef.current.position.y < -30) {
           meteorRef.current.position.set(...startPosition);
         }
@@ -581,8 +770,9 @@ function Meteor({ startPosition, speed, size, delay }: {
 
 // Interactive Asteroids (keeping only spherical shapes)
 function InteractiveAsteroids() {
+  const { theme } = useTheme();
   const asteroids = useMemo(() => {
-    return Array.from({ length: 12 }, (_, i) => ({
+    return Array.from({ length: theme === 'light' ? 4 : 12 }, (_, i) => ({
       id: i,
       position: [
         (Math.random() - 0.5) * 80,
@@ -594,7 +784,7 @@ function InteractiveAsteroids() {
       orbitRadius: 2 + Math.random() * 4,
       orbitSpeed: 0.001 + Math.random() * 0.005
     }));
-  }, []);
+  }, [theme]);
 
   return (
     <>
@@ -638,15 +828,12 @@ function InteractiveAsteroid({
     if (asteroidRef.current) {
       const time = state.clock.elapsedTime;
       
-      // Orbital motion
       asteroidRef.current.position.x = position[0] + Math.cos(time * orbitSpeed) * orbitRadius;
       asteroidRef.current.position.z = position[2] + Math.sin(time * orbitSpeed) * orbitRadius;
       
-      // Rotation
       asteroidRef.current.rotation.x += rotationSpeed;
       asteroidRef.current.rotation.y += rotationSpeed * 0.7;
       
-      // Mouse interaction
       const mouseVector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
       mouseVector.unproject(camera);
       const distance = camera.position.distanceTo(asteroidRef.current.position);
@@ -680,17 +867,19 @@ function InteractiveAsteroid({
 
 // Particle Dust System
 function SpaceDust() {
+  const { theme } = useTheme();
   const points = useRef<THREE.Points>(null);
   
   const particlesPosition = useMemo(() => {
-    const positions = new Float32Array(3000 * 3);
-    for (let i = 0; i < 3000; i++) {
+    const count = theme === 'light' ? 1000 : 3000;
+    const positions = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
       positions[i * 3] = (Math.random() - 0.5) * 150;
       positions[i * 3 + 1] = (Math.random() - 0.5) * 100;
       positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
     }
     return positions;
-  }, []);
+  }, [theme]);
 
   useFrame((state) => {
     if (points.current) {
@@ -703,11 +892,11 @@ function SpaceDust() {
     <Points ref={points} positions={particlesPosition} stride={3} frustumCulled={false}>
       <PointMaterial
         transparent
-        color="#ffffff"
-        size={0.03}
+        color={theme === 'light' ? "#FFDDAA" : "#ffffff"}
+        size={theme === 'light' ? 0.02 : 0.03}
         sizeAttenuation={true}
         depthWrite={false}
-        opacity={0.4}
+        opacity={theme === 'light' ? 0.2 : 0.4}
       />
     </Points>
   );
@@ -723,23 +912,23 @@ function DynamicLighting() {
     if (lightRef.current) {
       lightRef.current.position.x = mouse.x * 15;
       lightRef.current.position.y = mouse.y * 15;
-      lightRef.current.intensity = theme === 'light' ? 0.8 : 1.2;
+      lightRef.current.intensity = theme === 'light' ? 1.5 : 1.2;
     }
   });
 
   return (
     <>
-      <ambientLight intensity={theme === 'light' ? 0.4 : 0.1} />
+      <ambientLight intensity={theme === 'light' ? 0.8 : 0.1} />
       <pointLight
         ref={lightRef}
         position={[10, 10, 10]}
-        intensity={theme === 'light' ? 0.8 : 1.2}
+        intensity={theme === 'light' ? 1.5 : 1.2}
         color={new THREE.Color(theme === 'light' ? 0.9 : 0.3, theme === 'light' ? 0.9 : 0.6, 1.0)}
         distance={100}
       />
       <directionalLight
-        position={[-20, 10, 5]}
-        intensity={theme === 'light' ? 0.8 : 0.5}
+        position={theme === 'light' ? [-30, 15, -40] : [-20, 10, 5]}
+        intensity={theme === 'light' ? 1.2 : 0.5}
         color={new THREE.Color(1.0, 0.8, 0.6)}
       />
     </>
@@ -762,17 +951,21 @@ function SpaceScene() {
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: true }}
       >
+        <CameraController />
         <DynamicLighting />
         
+        {/* Atmospheric Sky for Light Theme */}
+        <AtmosphericSky />
+        
         {/* Enhanced Stars */}
-        <Stars
-          radius={300}
-          depth={60}
-          count={theme === 'light' ? 4000 : 12000}
-          factor={theme === 'light' ? 3 : 6}
-          saturation={0.4}
-          fade
-          speed={0.5}
+        <Stars 
+          radius={300} 
+          depth={60} 
+          count={theme === 'light' ? 2000 : 12000} 
+          factor={theme === 'light' ? 2 : 6} 
+          saturation={0.4} 
+          fade 
+          speed={0.5} 
         />
         
         {/* 3D Objects */}
@@ -783,13 +976,16 @@ function SpaceScene() {
         <InteractiveAsteroids />
         <SpaceDust />
         
+        {/* Realistic 3D Clouds for Light Theme */}
+        <RealisticClouds />
+        
         {/* Additional Effects */}
         <DreiSparkles 
-          count={60} 
+          count={theme === 'light' ? 30 : 60} 
           scale={[30, 30, 30]} 
           size={1} 
           speed={0.3} 
-          opacity={theme === 'light' ? 0.3 : 0.5}
+          opacity={theme === 'light' ? 0.2 : 0.5}
           color={theme === 'light' ? "#FFD700" : "#4fc3f7"}
         />
         
@@ -799,7 +995,7 @@ function SpaceScene() {
           enablePan={false} 
           enableRotate={false}
           autoRotate
-          autoRotateSpeed={0.1}
+          autoRotateSpeed={theme === 'light' ? 0.05 : 0.1}
         />
       </Canvas>
     </div>
@@ -831,7 +1027,7 @@ function EnhancedMouseEffect() {
   }, []);
 
   const gradientColors = theme === 'light'
-    ? 'rgba(255, 215, 0, 0.2) 0%, rgba(255, 165, 0, 0.1) 30%, rgba(135, 206, 235, 0.05) 60%, transparent 80%'
+    ? 'rgba(255, 215, 0, 0.15) 0%, rgba(255, 165, 0, 0.08) 30%, rgba(135, 206, 235, 0.05) 60%, transparent 80%'
     : 'rgba(59, 130, 246, 0.3) 0%, rgba(147, 51, 234, 0.2) 30%, rgba(236, 72, 153, 0.1) 60%, transparent 80%';
 
   return (
@@ -907,7 +1103,7 @@ export default function Index() {
   ];
 
   return (
-    <div className={`min-h-screen relative overflow-hidden ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
+    <div className={`min-h-screen relative overflow-hidden transition-colors duration-1000 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
       {/* Enhanced 3D Space Background */}
       <SpaceScene />
       
@@ -917,9 +1113,9 @@ export default function Index() {
       {/* Content */}
       <div className="relative z-20">
         {/* Professional Navbar */}
-        <nav className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl ${
+        <nav className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl transition-all duration-500 ${
           theme === 'light' 
-            ? 'bg-white/30 border-gray-200/30' 
+            ? 'bg-white/40 border-gray-200/40' 
             : 'bg-black/30 border-white/10'
         } border-b`}>
           <div className="container mx-auto px-6 py-4">
@@ -1055,7 +1251,7 @@ export default function Index() {
                   ].map((stat, index) => (
                     <Card key={index} className={`${
                       theme === 'light'
-                        ? 'bg-white/20 border-gray-200/30 hover:bg-white/30'
+                        ? 'bg-white/30 border-gray-200/40 hover:bg-white/40'
                         : 'bg-white/5 border-white/10 hover:bg-white/10'
                     } backdrop-blur-sm transition-colors`}>
                       <CardContent className="p-4 text-center">
@@ -1097,7 +1293,7 @@ export default function Index() {
                   key={index} 
                   className={`${
                     theme === 'light'
-                      ? 'bg-white/20 border-gray-200/30 hover:bg-white/30 hover:border-gray-300/50'
+                      ? 'bg-white/30 border-gray-200/40 hover:bg-white/40 hover:border-gray-300/60'
                       : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
                   } backdrop-blur-sm transition-all duration-300 hover:scale-105 group`}
                 >
@@ -1194,7 +1390,7 @@ export default function Index() {
         {/* Footer */}
         <footer className={`border-t backdrop-blur-sm py-8 ${
           theme === 'light'
-            ? 'border-gray-200/30 bg-white/20'
+            ? 'border-gray-200/40 bg-white/30'
             : 'border-white/10 bg-black/20'
         }`}>
           <div className="container mx-auto px-6 text-center">
