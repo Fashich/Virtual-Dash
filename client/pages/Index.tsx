@@ -1238,49 +1238,29 @@ function RealisticAsteroid({
     config: { tension:300, friction: 10 },
   });
 
-  // Generate realistic asteroid materials with variation
+  // Generate realistic asteroid materials with proper bright colors
   const asteroidMaterial = useMemo(() => {
     const baseColors = [
-      new THREE.Color(0.3, 0.25, 0.2), // Dark rocky
-      new THREE.Color(0.4, 0.35, 0.25), // Brownish
-      new THREE.Color(0.35, 0.3, 0.3), // Grayish
-      new THREE.Color(0.25, 0.3, 0.35), // Bluish gray
+      new THREE.Color(0.7, 0.5, 0.3), // Rocky brown - much brighter
+      new THREE.Color(0.8, 0.6, 0.4), // Sandy brown - brighter
+      new THREE.Color(0.6, 0.6, 0.7), // Bluish gray - brighter
+      new THREE.Color(0.9, 0.7, 0.5), // Light tan - much brighter
     ];
 
     const baseColor = baseColors[asteroidType];
-    const colorAdjustment = (colorVariant - 0.5) * 0.2;
+    const colorAdjustment = (colorVariant - 0.5) * 0.3; // Increased variation
 
     return new THREE.MeshStandardMaterial({
       color: new THREE.Color(
-        Math.max(0, baseColor.r + colorAdjustment),
-        Math.max(0, baseColor.g + colorAdjustment),
-        Math.max(0, baseColor.b + colorAdjustment)
+        Math.max(0.4, Math.min(1.0, baseColor.r + colorAdjustment)), // Minimum 0.4 brightness
+        Math.max(0.4, Math.min(1.0, baseColor.g + colorAdjustment)),
+        Math.max(0.4, Math.min(1.0, baseColor.b + colorAdjustment))
       ),
-      roughness: 0.85 + Math.random() * 0.1,
-      metalness: 0.05 + Math.random() * 0.1,
-      emissive: hovered ? new THREE.Color(0.15, 0.1, 0.05) : new THREE.Color(0, 0, 0),
-      map: new THREE.TextureLoader().load(
-        "data:image/svg+xml;base64=" +
-          btoa(`
-        <svg width="256" height="256" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <filter id="roughness">
-              <feTurbulence baseFrequency="0.9" numOctaves="4" result="noise"/>
-              <feColorMatrix in="noise" values="0 0 0 0 0.2 0 0 0 0 0.2 0 0 0 0 0.2 0 0 0 1 0"/>
-            </filter>
-          </defs>
-          <rect width="256" height="256" fill="#444444" filter="url(#roughness)"/>
-          <!-- Crater-like indentations -->
-          <circle cx="80" cy="100" r="15" fill="#333333" opacity="0.8"/>
-          <circle cx="180" cy="60" r="10" fill="#333333" opacity="0.7"/>
-          <circle cx="200" cy="150" r="12" fill="#333333" opacity="0.9"/>
-          <circle cx="60" cy="200" r="8" fill="#333333" opacity="0.6"/>
-          <!-- Surface variations -->
-          <ellipse cx="120" cy="180" rx="20" ry="8" fill="#555555" opacity="0.5"/>
-          <ellipse cx="220" cy="100" rx="15" ry="12" fill="#555555" opacity="0.6"/>
-        </svg>
-      `),
-      ),
+      roughness: 0.7 + Math.random() * 0.2, // Less rough for better light reflection
+      metalness: 0.1 + Math.random() * 0.2, // More metallic for better visibility
+      emissive: hovered ? new THREE.Color(0.3, 0.2, 0.1) : new THREE.Color(0.05, 0.05, 0.05), // Always slight emissive
+      emissiveIntensity: hovered ? 0.4 : 0.1,
+      // Remove the texture map that was making it too dark
     });
   }, [asteroidType, colorVariant, hovered]);
 
