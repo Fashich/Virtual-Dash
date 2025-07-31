@@ -44,20 +44,20 @@ import {
 // Professional Multi-Stage Camera Controller
 function CameraController() {
   const { camera } = useThree();
-  const { theme } = useTheme();
+  const { theme, isTransitioning: themeTransitioning } = useTheme();
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [animationStage, setAnimationStage] = useState(0);
   const targetPosition = useRef(new THREE.Vector3());
   const targetLookAt = useRef(new THREE.Vector3());
   const currentLookAt = useRef(new THREE.Vector3());
 
-  // Multi-stage spring animation
+  // Multi-stage spring animation with improved timing
   const { progress } = useSpring({
     progress: theme === "light" ? 1 : 0,
     config: {
-      tension: 30,
-      friction: 40,
-      mass: 2,
+      tension: 25,
+      friction: 45,
+      mass: 2.5,
       duration: 6000, // 6 second cinematic sequence
     },
     onStart: () => {
@@ -99,7 +99,7 @@ function CameraController() {
     const easeIn = (t: number) => t * t * t;
 
     if (theme === "light") {
-      // Going to light theme - multi-stage animation
+      // Going to light theme - multi-stage animation with smooth progression
       if (stage1T < 1) {
         // Stage 1: Stay in space but start moving toward Earth
         const easedT1 = easeInOut(stage1T);
@@ -107,13 +107,13 @@ function CameraController() {
         const approachPos = new THREE.Vector3(0, 5, 20);
         targetPosition.current.lerpVectors(spacePos, approachPos, easedT1);
 
-        // Keep looking at Earth center
+        // Keep looking at Earth center with smooth transition
         const earthCenter = new THREE.Vector3(20, 5, -30);
-        currentLookAt.current.lerp(earthCenter, 0.02);
+        currentLookAt.current.lerp(earthCenter, 0.025);
 
         camera.fov = THREE.MathUtils.lerp(75, 80, easedT1);
       } else if (stage2T < 1) {
-        // Stage 2: Dramatic zoom toward Earth
+        // Stage 2: Dramatic zoom toward Earth with enhanced smoothness
         const easedT2 = easeIn(stage2T);
         const approachPos = new THREE.Vector3(0, 5, 20);
         const closePos = new THREE.Vector3(15, 8, -5);
@@ -124,11 +124,11 @@ function CameraController() {
         const closeEarthView = new THREE.Vector3(20, 6, -25);
         const lookTarget = new THREE.Vector3();
         lookTarget.lerpVectors(earthCenter, closeEarthView, easedT2);
-        currentLookAt.current.lerp(lookTarget, 0.03);
+        currentLookAt.current.lerp(lookTarget, 0.035);
 
         camera.fov = THREE.MathUtils.lerp(80, 95, easedT2);
       } else {
-        // Stage 3: Land on Earth and look up at sky
+        // Stage 3: Land on Earth and look up at sky with enhanced smoothness
         const easedT3 = easeOut(stage3T);
         const closePos = new THREE.Vector3(15, 8, -5);
         const groundPos = new THREE.Vector3(0, 2, 8);
@@ -139,19 +139,18 @@ function CameraController() {
         const skyView = new THREE.Vector3(0, 50, 0);
         const lookTarget = new THREE.Vector3();
         lookTarget.lerpVectors(closeEarthView, skyView, easedT3);
-        currentLookAt.current.lerp(lookTarget, 0.04);
+        currentLookAt.current.lerp(lookTarget, 0.045);
 
         camera.fov = THREE.MathUtils.lerp(95, 90, easedT3);
       }
     } else {
-      // Going to dark theme - reverse sequence
+      // Going to dark theme - smooth reverse sequence with improved easing
       const reverseT = 1 - t;
-      const easedReverse = easeInOut(reverseT);
 
       if (reverseT > 0.7) {
-        // Reverse stage 3: Look down from sky to Earth
+        // Reverse stage 3: Look down from sky to Earth with smooth easing
         const stageT = (reverseT - 0.7) / 0.3;
-        const easedT = easeIn(stageT);
+        const easedT = easeOut(stageT); // Changed to easeOut for smoother start
         const groundPos = new THREE.Vector3(0, 2, 8);
         const closePos = new THREE.Vector3(15, 8, -5);
         targetPosition.current.lerpVectors(groundPos, closePos, easedT);
@@ -160,13 +159,13 @@ function CameraController() {
         const closeEarthView = new THREE.Vector3(20, 6, -25);
         const lookTarget = new THREE.Vector3();
         lookTarget.lerpVectors(skyView, closeEarthView, easedT);
-        currentLookAt.current.lerp(lookTarget, 0.04);
+        currentLookAt.current.lerp(lookTarget, 0.045);
 
         camera.fov = THREE.MathUtils.lerp(90, 95, easedT);
       } else if (reverseT > 0.3) {
-        // Reverse stage 2: Zoom out from Earth
+        // Reverse stage 2: Zoom out from Earth with improved smoothness
         const stageT = (reverseT - 0.3) / 0.4;
-        const easedT = easeOut(stageT);
+        const easedT = easeInOut(stageT); // Better easing for middle stage
         const closePos = new THREE.Vector3(15, 8, -5);
         const approachPos = new THREE.Vector3(0, 5, 20);
         targetPosition.current.lerpVectors(closePos, approachPos, easedT);
@@ -175,13 +174,13 @@ function CameraController() {
         const earthCenter = new THREE.Vector3(20, 5, -30);
         const lookTarget = new THREE.Vector3();
         lookTarget.lerpVectors(closeEarthView, earthCenter, easedT);
-        currentLookAt.current.lerp(lookTarget, 0.03);
+        currentLookAt.current.lerp(lookTarget, 0.035);
 
         camera.fov = THREE.MathUtils.lerp(95, 80, easedT);
       } else {
-        // Reverse stage 1: Return to space
+        // Reverse stage 1: Return to space with smooth finish
         const stageT = reverseT / 0.3;
-        const easedT = easeInOut(stageT);
+        const easedT = easeIn(stageT); // Changed to easeIn for smooth ending
         const approachPos = new THREE.Vector3(0, 5, 20);
         const spacePos = new THREE.Vector3(0, 0, 25);
         targetPosition.current.lerpVectors(approachPos, spacePos, easedT);
@@ -190,7 +189,7 @@ function CameraController() {
         const spaceCenter = new THREE.Vector3(0, 0, 0);
         const lookTarget = new THREE.Vector3();
         lookTarget.lerpVectors(earthCenter, spaceCenter, easedT);
-        currentLookAt.current.lerp(lookTarget, 0.02);
+        currentLookAt.current.lerp(lookTarget, 0.025);
 
         camera.fov = THREE.MathUtils.lerp(80, 75, easedT);
       }
