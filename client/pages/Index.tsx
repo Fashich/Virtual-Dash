@@ -44,7 +44,7 @@ import {
 // Professional Multi-Stage Camera Controller
 function CameraController({ theme, pendingTheme, isTransitioning, cameraReachedGround }: { theme: string; pendingTheme: string | null; isTransitioning: boolean; cameraReachedGround: () => void }) {
   const { camera } = useThree();
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [cameraTransitioning, setCameraTransitioning] = useState(false);
   const [animationStage, setAnimationStage] = useState(0);
   const [hasReachedGround, setHasReachedGround] = useState(false);
   const targetPosition = useRef(new THREE.Vector3());
@@ -64,12 +64,12 @@ function CameraController({ theme, pendingTheme, isTransitioning, cameraReachedG
       duration: 8000, // 8 second cinematic sequence for more realistic landing
     },
     onStart: () => {
-      setIsTransitioning(true);
+      setCameraTransitioning(true);
       setAnimationStage(0);
       setHasReachedGround(false);
     },
     onRest: () => {
-      setIsTransitioning(false);
+      setCameraTransitioning(false);
       setAnimationStage(animationTarget === "light" ? 3 : 0);
     },
   });
