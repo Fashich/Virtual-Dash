@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '@/contexts/GameContext';
 import { useWeb3 } from '@/hooks/useWeb3';
-import { Wallet, User, ArrowLeft, Gamepad2 } from 'lucide-react';
+import { Wallet, User, ArrowLeft, Gamepad2, Mail, UserCheck } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function Signup() {
@@ -14,24 +14,28 @@ export default function Signup() {
   const { dispatch } = useGame();
   const { connectWallet, isConnecting, error } = useWeb3();
   const [playerName, setPlayerName] = useState('');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
   const handleCreateAccount = async () => {
-    if (!playerName.trim()) {
+    if (!playerName.trim() || !username.trim() || !email.trim()) {
       return;
     }
 
     setIsCreatingAccount(true);
-    
+
     try {
       // Create player account
       const playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       dispatch({
         type: 'UPDATE_PLAYER',
         payload: {
           id: playerId,
           name: playerName.trim(),
+          username: username.trim(),
+          email: email.trim(),
           coins: 1000, // Starting coins
           diamonds: 10, // Starting diamonds
         },
@@ -39,7 +43,7 @@ export default function Signup() {
 
       // Simulate account creation delay
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       setIsCreatingAccount(false);
       navigate('/');
     } catch (error) {
@@ -71,16 +75,20 @@ export default function Signup() {
       </div>
 
       <div className="relative z-10 w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
+        {/* Back to Home Button - Better positioned */}
+        <div className="mb-6">
           <Button
             onClick={() => navigate('/')}
             variant="ghost"
-            className="absolute top-0 left-0 text-white"
+            className="text-white hover:bg-white/10 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
           </Button>
+        </div>
+
+        {/* Header */}
+        <div className="text-center mb-8">
           
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Gamepad2 className="w-8 h-8 text-blue-400" />
@@ -133,11 +141,11 @@ export default function Signup() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="playerName" className="text-white">
-                  Player Name
+                  Display Name
                 </Label>
                 <Input
                   id="playerName"
-                  placeholder="Enter your player name"
+                  placeholder="Enter your display name"
                   value={playerName}
                   onChange={(e) => setPlayerName(e.target.value)}
                   className="bg-black/20 border-gray-600 text-white placeholder:text-gray-400"
@@ -145,9 +153,37 @@ export default function Signup() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="username" className="text-white">
+                  Username
+                </Label>
+                <Input
+                  id="username"
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="bg-black/20 border-gray-600 text-white placeholder:text-gray-400"
+                  maxLength={15}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-white">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-black/20 border-gray-600 text-white placeholder:text-gray-400"
+                />
+              </div>
+
               <Button
                 onClick={handleCreateAccount}
-                disabled={!playerName.trim() || isCreatingAccount}
+                disabled={!playerName.trim() || !username.trim() || !email.trim() || isCreatingAccount}
                 className="w-full"
                 variant="outline"
                 size="lg"
@@ -173,17 +209,45 @@ export default function Signup() {
             </div>
 
             {/* Login Alternative */}
-            <div className="text-center">
+            <div className="text-center space-y-3">
               <p className="text-gray-400 text-sm">
                 Already have an account?{' '}
                 <Button
                   variant="link"
                   className="text-blue-400 hover:text-blue-300 p-0 h-auto"
-                  onClick={() => navigate('/profile')}
+                  onClick={() => navigate('/login')}
                 >
                   Sign In
                 </Button>
               </p>
+
+              {/* Guest Play Option */}
+              <div className="border-t border-gray-600 pt-4">
+                <Button
+                  onClick={() => {
+                    // Set guest mode in game state
+                    dispatch({
+                      type: 'UPDATE_PLAYER',
+                      payload: {
+                        id: 'guest_' + Date.now(),
+                        name: 'Guest Player',
+                        coins: 0,
+                        diamonds: 0
+                      }
+                    });
+                    navigate('/game');
+                  }}
+                  variant="ghost"
+                  className="w-full text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/50"
+                  size="sm"
+                >
+                  <Gamepad2 className="w-4 h-4 mr-2" />
+                  Play as Guest
+                </Button>
+                <p className="text-xs text-gray-500 mt-2">
+                  Progress won't be saved in guest mode
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
