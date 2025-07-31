@@ -1,30 +1,45 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useNavigate } from 'react-router-dom';
-import { useGame } from '@/contexts/GameContext';
-import { useWeb3 } from '@/hooks/useWeb3';
-import { useTheme } from '@/contexts/ThemeContext';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Float, Sphere, Stars, OrbitControls, Points, PointMaterial, Trail, Sparkles as DreiSparkles } from '@react-three/drei';
-import { useSpring, animated } from '@react-spring/three';
-import * as THREE from 'three';
-import { 
-  Play, 
-  Trophy, 
-  Coins, 
-  Diamond, 
-  Zap, 
-  Users, 
-  Gamepad2, 
-  Wallet, 
+import React, { useRef, useEffect, useState, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
+import { useGame } from "@/contexts/GameContext";
+import { useWeb3 } from "@/hooks/useWeb3";
+import { useTheme } from "@/contexts/ThemeContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import {
+  Float,
+  Sphere,
+  Stars,
+  OrbitControls,
+  Points,
+  PointMaterial,
+  Trail,
+  Sparkles as DreiSparkles,
+} from "@react-three/drei";
+import { useSpring, animated } from "@react-spring/three";
+import * as THREE from "three";
+import {
+  Play,
+  Trophy,
+  Coins,
+  Diamond,
+  Zap,
+  Users,
+  Gamepad2,
+  Wallet,
   BookOpen,
   UserPlus,
   Rocket,
-  Sparkles
-} from 'lucide-react';
+  Sparkles,
+} from "lucide-react";
 
 // Professional Multi-Stage Camera Controller
 function CameraController() {
@@ -38,12 +53,12 @@ function CameraController() {
 
   // Multi-stage spring animation
   const { progress } = useSpring({
-    progress: theme === 'light' ? 1 : 0,
+    progress: theme === "light" ? 1 : 0,
     config: {
       tension: 30,
       friction: 40,
       mass: 2,
-      duration: 6000 // 6 second cinematic sequence
+      duration: 6000, // 6 second cinematic sequence
     },
     onStart: () => {
       setIsTransitioning(true);
@@ -51,8 +66,8 @@ function CameraController() {
     },
     onRest: () => {
       setIsTransitioning(false);
-      setAnimationStage(theme === 'light' ? 3 : 0);
-    }
+      setAnimationStage(theme === "light" ? 3 : 0);
+    },
   });
 
   useFrame(() => {
@@ -78,11 +93,12 @@ function CameraController() {
     }
 
     // Smooth easing functions
-    const easeInOut = (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    const easeInOut = (t: number) =>
+      t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
     const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
     const easeIn = (t: number) => t * t * t;
 
-    if (theme === 'light') {
+    if (theme === "light") {
       // Going to light theme - multi-stage animation
       if (stage1T < 1) {
         // Stage 1: Stay in space but start moving toward Earth
@@ -199,18 +215,18 @@ function RealisticClouds() {
     return Array.from({ length: 30 }, (_, i) => ({
       id: i,
       position: [
-        (Math.random() - 0.5) * 120,  // Wider spread
-        25 + Math.random() * 40,      // Much higher up in the sky
-        (Math.random() - 0.5) * 120   // Wider depth
+        (Math.random() - 0.5) * 120, // Wider spread
+        25 + Math.random() * 40, // Much higher up in the sky
+        (Math.random() - 0.5) * 120, // Wider depth
       ] as [number, number, number],
       scale: 1.2 + Math.random() * 3.5,
       speed: 0.001 + Math.random() * 0.005,
-      opacity: 0.4 + Math.random() * 0.5
+      opacity: 0.4 + Math.random() * 0.5,
     }));
   }, []);
 
   useFrame((state) => {
-    if (cloudsGroupRef.current && theme === 'light') {
+    if (cloudsGroupRef.current && theme === "light") {
       cloudsGroupRef.current.children.forEach((cloud, index) => {
         const layer = cloudLayers[index];
         if (cloud && layer) {
@@ -224,7 +240,7 @@ function RealisticClouds() {
     }
   });
 
-  if (theme !== 'light') return null;
+  if (theme !== "light") return null;
 
   return (
     <group ref={cloudsGroupRef}>
@@ -241,7 +257,11 @@ function RealisticClouds() {
 }
 
 // Individual Realistic Cloud Component
-function RealisticCloud({ position, scale, opacity }: {
+function RealisticCloud({
+  position,
+  scale,
+  opacity,
+}: {
   position: [number, number, number];
   scale: number;
   opacity: number;
@@ -254,14 +274,16 @@ function RealisticCloud({ position, scale, opacity }: {
       transparent: true,
       opacity: opacity,
       alphaTest: 0.1,
-      side: THREE.DoubleSide
+      side: THREE.DoubleSide,
     });
   }, [opacity]);
 
   useFrame((state) => {
     if (cloudRef.current) {
       // Gentle floating animation
-      cloudRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.3 + position[0]) * 0.8;
+      cloudRef.current.position.y =
+        position[1] +
+        Math.sin(state.clock.elapsedTime * 0.3 + position[0]) * 0.8;
       cloudRef.current.rotation.y = state.clock.elapsedTime * 0.005;
     }
   });
@@ -287,7 +309,7 @@ function RealisticCloud({ position, scale, opacity }: {
       <mesh material={cloudMaterial} position={[2.0, -0.2, -0.1]}>
         <sphereGeometry args={[0.7, 12, 8]} />
       </mesh>
-      
+
       {/* Wispy edges */}
       <mesh material={cloudMaterial} position={[2.5, 0.1, 0.3]}>
         <sphereGeometry args={[0.4, 8, 6]} />
@@ -307,7 +329,9 @@ function AtmosphericSky() {
 
   const skyMaterial = useMemo(() => {
     return new THREE.MeshBasicMaterial({
-      map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+      map: new THREE.TextureLoader().load(
+        "data:image/svg+xml;base64," +
+          btoa(`
         <svg width="1024" height="512" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="skyGradient" x1="0%" y1="100%" x2="0%" y2="0%">
@@ -327,19 +351,21 @@ function AtmosphericSky() {
           <rect width="1024" height="512" fill="url(#skyGradient)"/>
           <ellipse cx="200" cy="100" rx="150" ry="80" fill="url(#sunGlow)"/>
         </svg>
-      `)),
+      `),
+      ),
       side: THREE.BackSide,
       transparent: true,
-      opacity: theme === 'light' ? 1.0 : 0.0
+      opacity: theme === "light" ? 1.0 : 0.0,
     });
   }, [theme]);
 
   useFrame((state) => {
     if (skyRef.current) {
-      skyRef.current.material.opacity = theme === 'light' ? 1.0 : 0.0;
+      skyRef.current.material.opacity = theme === "light" ? 1.0 : 0.0;
     }
-    if (sunGlowRef.current && theme === 'light') {
-      sunGlowRef.current.material.opacity = 0.3 + Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
+    if (sunGlowRef.current && theme === "light") {
+      sunGlowRef.current.material.opacity =
+        0.3 + Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
     }
   });
 
@@ -351,7 +377,7 @@ function AtmosphericSky() {
       </mesh>
 
       {/* Sun Atmospheric Glow */}
-      {theme === 'light' && (
+      {theme === "light" && (
         <mesh ref={sunGlowRef} position={[-40, 60, -20]}>
           <sphereGeometry args={[15, 16, 16]} />
           <meshBasicMaterial
@@ -374,7 +400,9 @@ function EarthSurface() {
 
   const groundMaterial = useMemo(() => {
     return new THREE.MeshLambertMaterial({
-      map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+      map: new THREE.TextureLoader().load(
+        "data:image/svg+xml;base64," +
+          btoa(`
         <svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <radialGradient id="grass" cx="50%" cy="50%">
@@ -397,16 +425,19 @@ function EarthSurface() {
           <ellipse cx="150" cy="480" rx="80" ry="15" fill="#3e6b4a" opacity="0.4"/>
           <ellipse cx="400" cy="490" rx="60" ry="10" fill="#3e6b4a" opacity="0.3"/>
         </svg>
-      `)),
+      `),
+      ),
       color: new THREE.Color(0.3, 0.6, 0.3),
       transparent: true,
-      opacity: theme === 'light' ? 1.0 : 0.0
+      opacity: theme === "light" ? 1.0 : 0.0,
     });
   }, [theme]);
 
   const horizonMaterial = useMemo(() => {
     return new THREE.MeshBasicMaterial({
-      map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+      map: new THREE.TextureLoader().load(
+        "data:image/svg+xml;base64," +
+          btoa(`
         <svg width="1024" height="128" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="horizon" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -421,28 +452,34 @@ function EarthSurface() {
           <path d="M0 100 Q200 80 400 90 Q600 85 800 95 Q900 90 1024 100 L1024 128 L0 128 Z" fill="#2F4F4F" opacity="0.6"/>
           <path d="M0 110 Q150 95 300 105 Q500 100 700 108 Q850 105 1024 110 L1024 128 L0 128 Z" fill="#2F4F4F" opacity="0.4"/>
         </svg>
-      `)),
+      `),
+      ),
       transparent: true,
-      opacity: theme === 'light' ? 0.8 : 0.0,
-      side: THREE.DoubleSide
+      opacity: theme === "light" ? 0.8 : 0.0,
+      side: THREE.DoubleSide,
     });
   }, [theme]);
 
   useFrame(() => {
     if (groundRef.current) {
-      groundRef.current.material.opacity = theme === 'light' ? 1.0 : 0.0;
+      groundRef.current.material.opacity = theme === "light" ? 1.0 : 0.0;
     }
     if (horizonRef.current) {
-      horizonRef.current.material.opacity = theme === 'light' ? 0.8 : 0.0;
+      horizonRef.current.material.opacity = theme === "light" ? 0.8 : 0.0;
     }
   });
 
-  if (theme !== 'light') return null;
+  if (theme !== "light") return null;
 
   return (
     <>
       {/* Ground Plane */}
-      <mesh ref={groundRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -2, 0]} material={groundMaterial}>
+      <mesh
+        ref={groundRef}
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, -2, 0]}
+        material={groundMaterial}
+      >
         <planeGeometry args={[200, 200]} />
       </mesh>
 
@@ -465,7 +502,9 @@ function Earth() {
   // Create highly realistic Earth materials
   const earthMaterial = useMemo(() => {
     const material = new THREE.MeshPhongMaterial({
-      map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+      map: new THREE.TextureLoader().load(
+        "data:image/svg+xml;base64," +
+          btoa(`
         <svg width="1024" height="512" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <radialGradient id="ocean" cx="50%" cy="50%">
@@ -525,8 +564,11 @@ function Earth() {
           <ellipse cx="480" cy="200" rx="30" ry="20" fill="url(#desert)"/>
           <ellipse cx="580" cy="160" rx="25" ry="15" fill="url(#desert)"/>
         </svg>
-      `)),
-      normalMap: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+      `),
+      ),
+      normalMap: new THREE.TextureLoader().load(
+        "data:image/svg+xml;base64," +
+          btoa(`
         <svg width="1024" height="512" xmlns="http://www.w3.org/2000/svg">
           <rect width="1024" height="512" fill="#8080FF"/>
           <circle cx="200" cy="150" r="40" fill="#9090FF"/>
@@ -534,10 +576,11 @@ function Earth() {
           <circle cx="650" cy="180" r="50" fill="#9090FF"/>
           <circle cx="750" cy="380" r="35" fill="#9090FF"/>
         </svg>
-      `)),
+      `),
+      ),
       shininess: 30,
       specular: new THREE.Color(0.2, 0.4, 0.8),
-      transparent: false
+      transparent: false,
     });
     material.map!.wrapS = THREE.RepeatWrapping;
     material.map!.wrapT = THREE.RepeatWrapping;
@@ -548,7 +591,9 @@ function Earth() {
 
   const cloudMaterial = useMemo(() => {
     return new THREE.MeshLambertMaterial({
-      map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+      map: new THREE.TextureLoader().load(
+        "data:image/svg+xml;base64," +
+          btoa(`
         <svg width="1024" height="512" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <filter id="blur">
@@ -588,10 +633,11 @@ function Earth() {
           <circle cx="750" cy="200" r="35" fill="rgba(255,255,255,0.3)" filter="url(#blur)"/>
           <circle cx="120" cy="300" r="40" fill="rgba(255,255,255,0.6)" filter="url(#blur)"/>
         </svg>
-      `)),
+      `),
+      ),
       transparent: true,
       opacity: 0.7,
-      depthWrite: false
+      depthWrite: false,
     });
   }, []);
 
@@ -601,13 +647,15 @@ function Earth() {
       transparent: true,
       opacity: 0.15,
       side: THREE.BackSide,
-      blending: THREE.AdditiveBlending
+      blending: THREE.AdditiveBlending,
     });
   }, []);
 
   const nightLightsMaterial = useMemo(() => {
     return new THREE.MeshBasicMaterial({
-      map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+      map: new THREE.TextureLoader().load(
+        "data:image/svg+xml;base64," +
+          btoa(`
         <svg width="1024" height="512" xmlns="http://www.w3.org/2000/svg">
           <rect width="1024" height="512" fill="#000000"/>
           
@@ -633,10 +681,11 @@ function Earth() {
           <circle cx="500" cy="250" r="1" fill="#FFA500"/>
           <circle cx="750" cy="350" r="1" fill="#FFA500"/>
         </svg>
-      `)),
+      `),
+      ),
       transparent: true,
       opacity: 0.8,
-      blending: THREE.AdditiveBlending
+      blending: THREE.AdditiveBlending,
     });
   }, []);
 
@@ -656,7 +705,7 @@ function Earth() {
   });
 
   // Hide Earth when in light theme (we're on Earth, not viewing it)
-  if (theme === 'light') return null;
+  if (theme === "light") return null;
 
   return (
     <group position={[20, 5, -30]}>
@@ -690,7 +739,9 @@ function Moon() {
 
   const moonMaterial = useMemo(() => {
     return new THREE.MeshPhongMaterial({
-      map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+      map: new THREE.TextureLoader().load(
+        "data:image/svg+xml;base64," +
+          btoa(`
         <svg width="256" height="128" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <radialGradient id="moon" cx="40%" cy="40%">
@@ -706,9 +757,10 @@ function Moon() {
           <circle cx="200" cy="80" r="10" fill="#aaaaaa"/>
           <circle cx="40" cy="90" r="5" fill="#aaaaaa"/>
         </svg>
-      `)),
+      `),
+      ),
       shininess: 30,
-      transparent: true
+      transparent: true,
     });
   }, []);
 
@@ -717,17 +769,23 @@ function Moon() {
       const earthPosition = [20, 5, -30];
       const orbitRadius = 15;
       const orbitSpeed = 0.02;
-      
-      moonRef.current.position.x = earthPosition[0] + Math.cos(state.clock.elapsedTime * orbitSpeed) * orbitRadius;
-      moonRef.current.position.y = earthPosition[1] + Math.sin(state.clock.elapsedTime * orbitSpeed * 0.5) * 3;
-      moonRef.current.position.z = earthPosition[2] + Math.sin(state.clock.elapsedTime * orbitSpeed) * orbitRadius;
-      
+
+      moonRef.current.position.x =
+        earthPosition[0] +
+        Math.cos(state.clock.elapsedTime * orbitSpeed) * orbitRadius;
+      moonRef.current.position.y =
+        earthPosition[1] +
+        Math.sin(state.clock.elapsedTime * orbitSpeed * 0.5) * 3;
+      moonRef.current.position.z =
+        earthPosition[2] +
+        Math.sin(state.clock.elapsedTime * orbitSpeed) * orbitRadius;
+
       moonRef.current.rotation.y = state.clock.elapsedTime * 0.01;
     }
   });
 
   // Hide Moon when in light theme (we're on Earth, not viewing it from space)
-  if (theme === 'light') return null;
+  if (theme === "light") return null;
 
   return (
     <mesh ref={moonRef} material={moonMaterial}>
@@ -748,7 +806,9 @@ function Sun() {
   // Realistic Sun surface material
   const sunMaterial = useMemo(() => {
     return new THREE.MeshBasicMaterial({
-      map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+      map: new THREE.TextureLoader().load(
+        "data:image/svg+xml;base64," +
+          btoa(`
         <svg width="512" height="256" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <radialGradient id="sunCore" cx="50%" cy="50%">
@@ -790,10 +850,11 @@ function Sun() {
           <path d="M480 100 Q490 80 500 90 Q510 100 500 110 Q490 120 480 100" fill="#FF69B4" opacity="0.8"/>
           <path d="M50 150 Q40 130 30 140 Q20 150 30 160 Q40 170 50 150" fill="#FF1493" opacity="0.7"/>
         </svg>
-      `)),
+      `),
+      ),
       color: new THREE.Color(1.0, 0.9, 0.8),
       emissive: new THREE.Color(1.0, 0.6, 0.2),
-      emissiveIntensity: theme === 'light' ? 0.8 : 1.5
+      emissiveIntensity: theme === "light" ? 0.8 : 1.5,
     });
   }, [theme]);
 
@@ -802,15 +863,17 @@ function Sun() {
     return new THREE.MeshBasicMaterial({
       color: new THREE.Color(1.0, 0.3, 0.1),
       transparent: true,
-      opacity: theme === 'light' ? 0.2 : 0.4,
-      blending: THREE.AdditiveBlending
+      opacity: theme === "light" ? 0.2 : 0.4,
+      blending: THREE.AdditiveBlending,
     });
   }, [theme]);
 
   // Corona material with realistic solar wind effect
   const coronaMaterial = useMemo(() => {
     return new THREE.MeshBasicMaterial({
-      map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+      map: new THREE.TextureLoader().load(
+        "data:image/svg+xml;base64," +
+          btoa(`
         <svg width="256" height="128" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <radialGradient id="corona" cx="50%" cy="50%">
@@ -830,11 +893,12 @@ function Sun() {
           <path d="M0 88 Q30 98 60 88 Q90 78 120 88 Q150 98 180 88 Q210 78 240 88" 
                 stroke="rgba(255,165,0,0.1)" stroke-width="1" fill="none"/>
         </svg>
-      `)),
+      `),
+      ),
       transparent: true,
-      opacity: theme === 'light' ? 0.3 : 0.6,
+      opacity: theme === "light" ? 0.3 : 0.6,
       side: THREE.BackSide,
-      blending: THREE.AdditiveBlending
+      blending: THREE.AdditiveBlending,
     });
   }, [theme]);
 
@@ -843,38 +907,38 @@ function Sun() {
     return new THREE.MeshBasicMaterial({
       color: new THREE.Color(1.0, 0.4, 0.6),
       transparent: true,
-      opacity: theme === 'light' ? 0.4 : 0.8,
-      blending: THREE.AdditiveBlending
+      opacity: theme === "light" ? 0.4 : 0.8,
+      blending: THREE.AdditiveBlending,
     });
   }, [theme]);
 
   useFrame((state) => {
     const time = state.clock.elapsedTime;
-    
+
     if (sunRef.current) {
       sunRef.current.rotation.y = time * 0.003;
       const solarPulse = 1 + Math.sin(time * 0.5) * 0.02;
       sunRef.current.scale.setScalar(solarPulse);
     }
-    
+
     if (chromosphereRef.current) {
       chromosphereRef.current.rotation.y = time * 0.005;
       const chromoPulse = 1 + Math.sin(time * 0.8) * 0.03;
       chromosphereRef.current.scale.setScalar(chromoPulse);
     }
-    
+
     if (coronaRef.current) {
       coronaRef.current.rotation.y = -time * 0.001;
       coronaRef.current.rotation.z = time * 0.002;
       const coronaPulse = 1 + Math.sin(time * 0.3) * 0.05;
       coronaRef.current.scale.setScalar(coronaPulse);
     }
-    
+
     if (flareRef1.current) {
       flareRef1.current.rotation.z = time * 2;
       flareRef1.current.scale.setScalar(1 + Math.sin(time * 3) * 0.3);
     }
-    
+
     if (flareRef2.current) {
       flareRef2.current.rotation.z = -time * 1.5;
       flareRef2.current.scale.setScalar(1 + Math.cos(time * 2.5) * 0.2);
@@ -882,7 +946,7 @@ function Sun() {
   });
 
   // Position sun in the sky for ground view
-  const sunPosition = theme === 'light' ? [-40, 60, -20] : [-70, 25, -90];
+  const sunPosition = theme === "light" ? [-40, 60, -20] : [-70, 25, -90];
 
   return (
     <group position={sunPosition}>
@@ -890,28 +954,33 @@ function Sun() {
       <mesh ref={sunRef} material={sunMaterial}>
         <sphereGeometry args={[12, 64, 32]} />
       </mesh>
-      
+
       {/* Chromosphere */}
       <mesh ref={chromosphereRef} material={chromosphereMaterial}>
         <sphereGeometry args={[12.5, 32, 16]} />
       </mesh>
-      
+
       {/* Corona */}
       <mesh ref={coronaRef} material={coronaMaterial}>
         <sphereGeometry args={[18, 32, 16]} />
       </mesh>
-      
+
       {/* Solar Flares */}
       <mesh ref={flareRef1} material={flareMaterial} position={[0, 8, 0]}>
         <coneGeometry args={[2, 6, 8]} />
       </mesh>
-      <mesh ref={flareRef2} material={flareMaterial} position={[0, -8, 0]} rotation={[Math.PI, 0, 0]}>
+      <mesh
+        ref={flareRef2}
+        material={flareMaterial}
+        position={[0, -8, 0]}
+        rotation={[Math.PI, 0, 0]}
+      >
         <coneGeometry args={[1.5, 4, 8]} />
       </mesh>
-      
+
       {/* Dynamic Sun Light */}
       <pointLight
-        intensity={theme === 'light' ? 4.0 : 3.5}
+        intensity={theme === "light" ? 4.0 : 3.5}
         color={new THREE.Color(1.0, 0.95, 0.8)}
         distance={300}
         decay={1.2}
@@ -920,14 +989,14 @@ function Sun() {
       {/* Secondary warm light */}
       <pointLight
         position={[5, 0, 0]}
-        intensity={theme === 'light' ? 1.5 : 1.2}
+        intensity={theme === "light" ? 1.5 : 1.2}
         color={new THREE.Color(1.0, 0.7, 0.4)}
         distance={150}
         decay={1.8}
       />
 
       {/* Directional sunlight for ground view */}
-      {theme === 'light' && (
+      {theme === "light" && (
         <directionalLight
           position={[-40, 60, -20]}
           intensity={2.0}
@@ -943,16 +1012,16 @@ function Sun() {
 function MeteorShower() {
   const { theme } = useTheme();
   const meteors = useMemo(() => {
-    return Array.from({ length: theme === 'light' ? 5 : 15 }, (_, i) => ({
+    return Array.from({ length: theme === "light" ? 5 : 15 }, (_, i) => ({
       id: i,
       startPosition: [
         (Math.random() - 0.5) * 100,
         Math.random() * 50 + 20,
-        -50 - Math.random() * 50
+        -50 - Math.random() * 50,
       ] as [number, number, number],
       speed: 0.5 + Math.random() * 1.5,
       size: 0.2 + Math.random() * 0.6,
-      delay: Math.random() * 10
+      delay: Math.random() * 10,
     }));
   }, [theme]);
 
@@ -971,7 +1040,12 @@ function MeteorShower() {
   );
 }
 
-function Meteor({ startPosition, speed, size, delay }: {
+function Meteor({
+  startPosition,
+  speed,
+  size,
+  delay,
+}: {
   startPosition: [number, number, number];
   speed: number;
   size: number;
@@ -992,7 +1066,7 @@ function Meteor({ startPosition, speed, size, delay }: {
         meteorRef.current.position.x = startPosition[0] + time * speed * -2;
         meteorRef.current.position.y = startPosition[1] + time * speed * -1;
         meteorRef.current.position.z = startPosition[2] + time * speed * 3;
-        
+
         if (meteorRef.current.position.y < -30) {
           meteorRef.current.position.set(...startPosition);
         }
@@ -1023,17 +1097,17 @@ function Meteor({ startPosition, speed, size, delay }: {
 function InteractiveAsteroids() {
   const { theme } = useTheme();
   const asteroids = useMemo(() => {
-    return Array.from({ length: theme === 'light' ? 4 : 12 }, (_, i) => ({
+    return Array.from({ length: theme === "light" ? 4 : 12 }, (_, i) => ({
       id: i,
       position: [
         (Math.random() - 0.5) * 80,
         (Math.random() - 0.5) * 40,
-        -20 - Math.random() * 40
+        -20 - Math.random() * 40,
       ] as [number, number, number],
       size: 0.8 + Math.random() * 2,
       rotationSpeed: (Math.random() - 0.5) * 0.02,
       orbitRadius: 2 + Math.random() * 4,
-      orbitSpeed: 0.001 + Math.random() * 0.005
+      orbitSpeed: 0.001 + Math.random() * 0.005,
     }));
   }, [theme]);
 
@@ -1058,7 +1132,7 @@ function InteractiveAsteroid({
   size,
   rotationSpeed,
   orbitRadius,
-  orbitSpeed
+  orbitSpeed,
 }: {
   position: [number, number, number];
   size: number;
@@ -1072,23 +1146,25 @@ function InteractiveAsteroid({
 
   const { scale } = useSpring({
     scale: hovered ? 1.3 : 1,
-    config: { tension: 300, friction: 10 }
+    config: { tension: 300, friction: 10 },
   });
 
   useFrame((state) => {
     if (asteroidRef.current) {
       const time = state.clock.elapsedTime;
-      
-      asteroidRef.current.position.x = position[0] + Math.cos(time * orbitSpeed) * orbitRadius;
-      asteroidRef.current.position.z = position[2] + Math.sin(time * orbitSpeed) * orbitRadius;
-      
+
+      asteroidRef.current.position.x =
+        position[0] + Math.cos(time * orbitSpeed) * orbitRadius;
+      asteroidRef.current.position.z =
+        position[2] + Math.sin(time * orbitSpeed) * orbitRadius;
+
       asteroidRef.current.rotation.x += rotationSpeed;
       asteroidRef.current.rotation.y += rotationSpeed * 0.7;
-      
+
       const mouseVector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
       mouseVector.unproject(camera);
       const distance = camera.position.distanceTo(asteroidRef.current.position);
-      
+
       if (distance < 15) {
         setHovered(true);
       } else {
@@ -1107,10 +1183,16 @@ function InteractiveAsteroid({
     >
       <sphereGeometry args={[size, 12, 12]} />
       <meshStandardMaterial
-        color={hovered ? new THREE.Color(0.8, 0.6, 0.3) : new THREE.Color(0.4, 0.4, 0.4)}
+        color={
+          hovered
+            ? new THREE.Color(0.8, 0.6, 0.3)
+            : new THREE.Color(0.4, 0.4, 0.4)
+        }
         roughness={0.9}
         metalness={0.1}
-        emissive={hovered ? new THREE.Color(0.2, 0.1, 0) : new THREE.Color(0, 0, 0)}
+        emissive={
+          hovered ? new THREE.Color(0.2, 0.1, 0) : new THREE.Color(0, 0, 0)
+        }
       />
     </animated.mesh>
   );
@@ -1120,9 +1202,9 @@ function InteractiveAsteroid({
 function SpaceDust() {
   const { theme } = useTheme();
   const points = useRef<THREE.Points>(null);
-  
+
   const particlesPosition = useMemo(() => {
-    const count = theme === 'light' ? 1000 : 3000;
+    const count = theme === "light" ? 1000 : 3000;
     const positions = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       positions[i * 3] = (Math.random() - 0.5) * 150;
@@ -1140,14 +1222,19 @@ function SpaceDust() {
   });
 
   return (
-    <Points ref={points} positions={particlesPosition} stride={3} frustumCulled={false}>
+    <Points
+      ref={points}
+      positions={particlesPosition}
+      stride={3}
+      frustumCulled={false}
+    >
       <PointMaterial
         transparent
-        color={theme === 'light' ? "#FFDDAA" : "#ffffff"}
-        size={theme === 'light' ? 0.02 : 0.03}
+        color={theme === "light" ? "#FFDDAA" : "#ffffff"}
+        size={theme === "light" ? 0.02 : 0.03}
         sizeAttenuation={true}
         depthWrite={false}
-        opacity={theme === 'light' ? 0.2 : 0.4}
+        opacity={theme === "light" ? 0.2 : 0.4}
       />
     </Points>
   );
@@ -1163,23 +1250,29 @@ function DynamicLighting() {
     if (lightRef.current) {
       lightRef.current.position.x = mouse.x * 15;
       lightRef.current.position.y = mouse.y * 15;
-      lightRef.current.intensity = theme === 'light' ? 1.5 : 1.2;
+      lightRef.current.intensity = theme === "light" ? 1.5 : 1.2;
     }
   });
 
   return (
     <>
-      <ambientLight intensity={theme === 'light' ? 0.8 : 0.1} />
+      <ambientLight intensity={theme === "light" ? 0.8 : 0.1} />
       <pointLight
         ref={lightRef}
         position={[10, 10, 10]}
-        intensity={theme === 'light' ? 1.5 : 1.2}
-        color={new THREE.Color(theme === 'light' ? 0.9 : 0.3, theme === 'light' ? 0.9 : 0.6, 1.0)}
+        intensity={theme === "light" ? 1.5 : 1.2}
+        color={
+          new THREE.Color(
+            theme === "light" ? 0.9 : 0.3,
+            theme === "light" ? 0.9 : 0.6,
+            1.0,
+          )
+        }
         distance={100}
       />
       <directionalLight
-        position={theme === 'light' ? [-30, 15, -40] : [-20, 10, 5]}
-        intensity={theme === 'light' ? 1.2 : 0.5}
+        position={theme === "light" ? [-30, 15, -40] : [-20, 10, 5]}
+        intensity={theme === "light" ? 1.2 : 0.5}
         color={new THREE.Color(1.0, 0.8, 0.6)}
       />
     </>
@@ -1189,10 +1282,11 @@ function DynamicLighting() {
 // Main 3D Space Scene
 function SpaceScene() {
   const { theme } = useTheme();
-  
-  const backgroundGradient = theme === 'light' 
-    ? 'linear-gradient(180deg, #87CEEB 0%, #B0E0E6 50%, #F0F8FF 100%)'
-    : 'linear-gradient(180deg, #000011 0%, #000033 50%, #000055 100%)';
+
+  const backgroundGradient =
+    theme === "light"
+      ? "linear-gradient(180deg, #87CEEB 0%, #B0E0E6 50%, #F0F8FF 100%)"
+      : "linear-gradient(180deg, #000011 0%, #000033 50%, #000055 100%)";
 
   return (
     <div className="fixed inset-0 z-0">
@@ -1204,21 +1298,21 @@ function SpaceScene() {
       >
         <CameraController />
         <DynamicLighting />
-        
+
         {/* Atmospheric Sky for Light Theme */}
         <AtmosphericSky />
-        
+
         {/* Enhanced Stars */}
-        <Stars 
-          radius={300} 
-          depth={60} 
-          count={theme === 'light' ? 2000 : 12000} 
-          factor={theme === 'light' ? 2 : 6} 
-          saturation={0.4} 
-          fade 
-          speed={0.5} 
+        <Stars
+          radius={300}
+          depth={60}
+          count={theme === "light" ? 2000 : 12000}
+          factor={theme === "light" ? 2 : 6}
+          saturation={0.4}
+          fade
+          speed={0.5}
         />
-        
+
         {/* 3D Objects */}
         <Earth />
         <Moon />
@@ -1226,30 +1320,30 @@ function SpaceScene() {
         <MeteorShower />
         <InteractiveAsteroids />
         <SpaceDust />
-        
+
         {/* Realistic 3D Clouds for Light Theme */}
         <RealisticClouds />
 
         {/* Earth Surface Elements */}
         <EarthSurface />
-        
+
         {/* Additional Effects */}
-        <DreiSparkles 
-          count={theme === 'light' ? 30 : 60} 
-          scale={[30, 30, 30]} 
-          size={1} 
-          speed={0.3} 
-          opacity={theme === 'light' ? 0.2 : 0.5}
-          color={theme === 'light' ? "#FFD700" : "#4fc3f7"}
+        <DreiSparkles
+          count={theme === "light" ? 30 : 60}
+          scale={[30, 30, 30]}
+          size={1}
+          speed={0.3}
+          opacity={theme === "light" ? 0.2 : 0.5}
+          color={theme === "light" ? "#FFD700" : "#4fc3f7"}
         />
-        
+
         {/* Orbital Controls for subtle camera movement */}
-        <OrbitControls 
-          enableZoom={false} 
-          enablePan={false} 
+        <OrbitControls
+          enableZoom={false}
+          enablePan={false}
           enableRotate={false}
           autoRotate
-          autoRotateSpeed={theme === 'light' ? 0.05 : 0.1}
+          autoRotateSpeed={theme === "light" ? 0.05 : 0.1}
         />
       </Canvas>
     </div>
@@ -1264,39 +1358,40 @@ function EnhancedMouseEffect() {
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
-    
+
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
       setIsMoving(true);
-      
+
       clearTimeout(timeout);
       timeout = setTimeout(() => setIsMoving(false), 100);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener("mousemove", handleMouseMove);
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener("mousemove", handleMouseMove);
       clearTimeout(timeout);
     };
   }, []);
 
-  const gradientColors = theme === 'light'
-    ? 'rgba(255, 215, 0, 0.15) 0%, rgba(255, 165, 0, 0.08) 30%, rgba(135, 206, 235, 0.05) 60%, transparent 80%'
-    : 'rgba(59, 130, 246, 0.3) 0%, rgba(147, 51, 234, 0.2) 30%, rgba(236, 72, 153, 0.1) 60%, transparent 80%';
+  const gradientColors =
+    theme === "light"
+      ? "rgba(255, 215, 0, 0.15) 0%, rgba(255, 165, 0, 0.08) 30%, rgba(135, 206, 235, 0.05) 60%, transparent 80%"
+      : "rgba(59, 130, 246, 0.3) 0%, rgba(147, 51, 234, 0.2) 30%, rgba(236, 72, 153, 0.1) 60%, transparent 80%";
 
   return (
     <div
       className={`fixed pointer-events-none z-30 transition-all duration-300 ${
-        isMoving ? 'opacity-80' : 'opacity-40'
+        isMoving ? "opacity-80" : "opacity-40"
       }`}
       style={{
         left: mousePosition.x - 200,
         top: mousePosition.y - 200,
-        width: '400px',
-        height: '400px',
+        width: "400px",
+        height: "400px",
         background: `radial-gradient(circle, ${gradientColors})`,
-        borderRadius: '50%',
-        filter: 'blur(60px)',
+        borderRadius: "50%",
+        filter: "blur(60px)",
         transform: `scale(${isMoving ? 1.2 : 1})`,
       }}
     />
@@ -1312,83 +1407,95 @@ export default function Index() {
   // Guest mode handler
   const handlePlayAsGuest = () => {
     dispatch({
-      type: 'UPDATE_PLAYER',
-      payload: { 
-        id: 'guest_' + Date.now(),
-        name: 'Guest Player',
+      type: "UPDATE_PLAYER",
+      payload: {
+        id: "guest_" + Date.now(),
+        name: "Guest Player",
         coins: 0,
-        diamonds: 0
-      }
+        diamonds: 0,
+      },
     });
-    navigate('/game');
+    navigate("/game");
   };
 
   const features = [
     {
       icon: <Rocket className="w-8 h-8" />,
       title: "3D Space Runner",
-      description: "Navigate through stunning 3D space environments with realistic physics and gravity"
+      description:
+        "Navigate through stunning 3D space environments with realistic physics and gravity",
     },
     {
       icon: <Wallet className="w-8 h-8" />,
       title: "Blockchain Rewards",
-      description: "Earn real cryptocurrency rewards and NFTs through gameplay achievements"
+      description:
+        "Earn real cryptocurrency rewards and NFTs through gameplay achievements",
     },
     {
       icon: <Trophy className="w-8 h-8" />,
       title: "Cosmic Leaderboards",
-      description: "Compete with space explorers worldwide and climb the galactic rankings"
+      description:
+        "Compete with space explorers worldwide and climb the galactic rankings",
     },
     {
       icon: <Zap className="w-8 h-8" />,
       title: "Power-ups & Tech",
-      description: "Unlock advanced space technology and energy boosters for your ship"
+      description:
+        "Unlock advanced space technology and energy boosters for your ship",
     },
     {
       icon: <Diamond className="w-8 h-8" />,
       title: "Stellar Collectibles",
-      description: "Discover rare cosmic gems and materials scattered across the universe"
+      description:
+        "Discover rare cosmic gems and materials scattered across the universe",
     },
     {
       icon: <Users className="w-8 h-8" />,
       title: "Space Community",
-      description: "Join a vibrant community of space explorers and cosmic adventurers"
-    }
+      description:
+        "Join a vibrant community of space explorers and cosmic adventurers",
+    },
   ];
 
   return (
-    <div className={`min-h-screen relative overflow-hidden transition-colors duration-1000 ${theme === 'light' ? 'text-gray-900' : 'text-white'}`}>
+    <div
+      className={`min-h-screen relative overflow-hidden transition-colors duration-1000 ${theme === "light" ? "text-gray-900" : "text-white"}`}
+    >
       {/* Enhanced 3D Space Background */}
       <SpaceScene />
-      
+
       {/* Enhanced Mouse Effect */}
       <EnhancedMouseEffect />
 
       {/* Content */}
       <div className="relative z-20">
         {/* Professional Navbar */}
-        <nav className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl transition-all duration-500 ${
-          theme === 'light' 
-            ? 'bg-white/40 border-gray-200/40' 
-            : 'bg-black/30 border-white/10'
-        } border-b`}>
+        <nav
+          className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl transition-all duration-500 ${
+            theme === "light"
+              ? "bg-white/40 border-gray-200/40"
+              : "bg-black/30 border-white/10"
+          } border-b`}
+        >
           <div className="container mx-auto px-6 py-4">
             <div className="flex justify-between items-center">
               {/* Logo Section */}
               <div className="flex items-center space-x-3">
                 <div className="relative">
-                  <img 
-                    src="https://cdn.builder.io/api/v1/image/assets%2F61bb2c2b59304a3e8ff6f05c93913451%2Fb4dbc5f8d01c47418626106a29f0d54b?format=webp&width=800" 
-                    alt="Virtual Dash Logo" 
+                  <img
+                    src="https://cdn.builder.io/api/v1/image/assets%2F61bb2c2b59304a3e8ff6f05c93913451%2Fb4dbc5f8d01c47418626106a29f0d54b?format=webp&width=800"
+                    alt="Virtual Dash Logo"
                     className="w-10 h-10 rounded-lg object-cover"
                   />
                   <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg blur opacity-30"></div>
                 </div>
-                <h1 className={`text-2xl font-bold bg-gradient-to-r ${
-                  theme === 'light' 
-                    ? 'from-gray-800 to-blue-600' 
-                    : 'from-white to-blue-200'
-                } bg-clip-text text-transparent`}>
+                <h1
+                  className={`text-2xl font-bold bg-gradient-to-r ${
+                    theme === "light"
+                      ? "from-gray-800 to-blue-600"
+                      : "from-white to-blue-200"
+                  } bg-clip-text text-transparent`}
+                >
                   Virtual Dash
                 </h1>
               </div>
@@ -1396,25 +1503,26 @@ export default function Index() {
               {/* Navigation Buttons */}
               <div className="flex items-center space-x-4">
                 <ThemeToggle />
-                
+
                 {state.wallet.isConnected ? (
                   <Badge className="bg-green-500/20 text-green-300 border-green-500/30 px-4 py-2">
                     <Wallet className="w-4 h-4 mr-2" />
-                    {state.wallet.address?.slice(0, 6)}...{state.wallet.address?.slice(-4)}
+                    {state.wallet.address?.slice(0, 6)}...
+                    {state.wallet.address?.slice(-4)}
                   </Badge>
                 ) : (
-                  <Button 
-                    onClick={connectWallet} 
+                  <Button
+                    onClick={connectWallet}
                     disabled={isConnecting}
                     className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 shadow-lg shadow-blue-500/25"
                   >
                     <Wallet className="w-4 h-4 mr-2" />
-                    {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+                    {isConnecting ? "Connecting..." : "Connect Wallet"}
                   </Button>
                 )}
-                
-                <Button 
-                  onClick={() => navigate('/signup')}
+
+                <Button
+                  onClick={() => navigate("/signup")}
                   className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0 shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all duration-300 hover:scale-105"
                 >
                   <UserPlus className="w-4 h-4 mr-2" />
@@ -1437,13 +1545,19 @@ export default function Index() {
               </h1>
 
               {/* Subtitle */}
-              <p className={`text-xl md:text-2xl mb-12 max-w-3xl mx-auto leading-relaxed ${
-                theme === 'light' ? 'text-gray-700' : 'text-gray-300'
-              }`}>
-                Embark on an epic journey through the cosmos in this revolutionary 3D endless runner. 
-                <span className="text-cyan-400"> Collect cosmic rewards</span>, 
-                <span className="text-purple-400"> upgrade your ship</span>, and 
-                <span className="text-pink-400"> compete across the galaxy!</span>
+              <p
+                className={`text-xl md:text-2xl mb-12 max-w-3xl mx-auto leading-relaxed ${
+                  theme === "light" ? "text-gray-700" : "text-gray-300"
+                }`}
+              >
+                Embark on an epic journey through the cosmos in this
+                revolutionary 3D endless runner.
+                <span className="text-cyan-400"> Collect cosmic rewards</span>,
+                <span className="text-purple-400"> upgrade your ship</span>, and
+                <span className="text-pink-400">
+                  {" "}
+                  compete across the galaxy!
+                </span>
               </p>
 
               {/* Action Buttons */}
@@ -1456,14 +1570,14 @@ export default function Index() {
                   <Play className="w-6 h-6 mr-3" />
                   Play Now (Guest)
                 </Button>
-                
-                <Button 
-                  onClick={() => navigate('/guide')} 
+
+                <Button
+                  onClick={() => navigate("/guide")}
                   size="lg"
                   className={`${
-                    theme === 'light'
-                      ? 'bg-gray-100/50 hover:bg-gray-200/50 text-gray-800 border-2 border-gray-300/50 hover:border-gray-400/50'
-                      : 'bg-white/10 hover:bg-white/20 text-white border-2 border-white/20 hover:border-white/30'
+                    theme === "light"
+                      ? "bg-gray-100/50 hover:bg-gray-200/50 text-gray-800 border-2 border-gray-300/50 hover:border-gray-400/50"
+                      : "bg-white/10 hover:bg-white/20 text-white border-2 border-white/20 hover:border-white/30"
                   } backdrop-blur-sm px-8 py-4 text-lg font-semibold transition-all duration-300 hover:scale-105`}
                 >
                   <BookOpen className="w-6 h-6 mr-3" />
@@ -1472,20 +1586,24 @@ export default function Index() {
               </div>
 
               {/* Guest Mode Notice */}
-              <div className={`${
-                theme === 'light'
-                  ? 'bg-amber-200/20 border-amber-400/30 text-amber-800'
-                  : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-300'
-              } border rounded-lg p-4 max-w-2xl mx-auto mb-12 backdrop-blur-sm`}>
+              <div
+                className={`${
+                  theme === "light"
+                    ? "bg-amber-200/20 border-amber-400/30 text-amber-800"
+                    : "bg-yellow-500/10 border-yellow-500/20 text-yellow-300"
+                } border rounded-lg p-4 max-w-2xl mx-auto mb-12 backdrop-blur-sm`}
+              >
                 <div className="flex items-center justify-center space-x-2">
                   <Sparkles className="w-5 h-5" />
                   <span className="text-sm font-medium">
-                    Playing as guest? Your progress won't be saved. 
-                    <Button 
-                      onClick={() => navigate('/signup')}
-                      variant="link" 
+                    Playing as guest? Your progress won't be saved.
+                    <Button
+                      onClick={() => navigate("/signup")}
+                      variant="link"
                       className={`${
-                        theme === 'light' ? 'text-amber-700 hover:text-amber-600' : 'text-yellow-400 hover:text-yellow-300'
+                        theme === "light"
+                          ? "text-amber-700 hover:text-amber-600"
+                          : "text-yellow-400 hover:text-yellow-300"
                       } p-0 h-auto ml-1`}
                     >
                       Sign up to save progress!
@@ -1498,22 +1616,51 @@ export default function Index() {
               {state.player.highScore > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
                   {[
-                    { icon: Trophy, value: state.player.highScore, label: 'High Score', color: 'text-yellow-400' },
-                    { icon: Coins, value: state.player.coins, label: 'Coins', color: 'text-yellow-400' },
-                    { icon: Diamond, value: state.player.diamonds, label: 'Diamonds', color: 'text-blue-400' },
-                    { icon: Zap, value: state.player.level, label: 'Level', color: 'text-purple-400' }
+                    {
+                      icon: Trophy,
+                      value: state.player.highScore,
+                      label: "High Score",
+                      color: "text-yellow-400",
+                    },
+                    {
+                      icon: Coins,
+                      value: state.player.coins,
+                      label: "Coins",
+                      color: "text-yellow-400",
+                    },
+                    {
+                      icon: Diamond,
+                      value: state.player.diamonds,
+                      label: "Diamonds",
+                      color: "text-blue-400",
+                    },
+                    {
+                      icon: Zap,
+                      value: state.player.level,
+                      label: "Level",
+                      color: "text-purple-400",
+                    },
                   ].map((stat, index) => (
-                    <Card key={index} className={`${
-                      theme === 'light'
-                        ? 'bg-white/30 border-gray-200/40 hover:bg-white/40'
-                        : 'bg-white/5 border-white/10 hover:bg-white/10'
-                    } backdrop-blur-sm transition-colors`}>
+                    <Card
+                      key={index}
+                      className={`${
+                        theme === "light"
+                          ? "bg-white/30 border-gray-200/40 hover:bg-white/40"
+                          : "bg-white/5 border-white/10 hover:bg-white/10"
+                      } backdrop-blur-sm transition-colors`}
+                    >
                       <CardContent className="p-4 text-center">
-                        <stat.icon className={`w-8 h-8 mx-auto mb-2 ${stat.color}`} />
-                        <div className={`text-2xl font-bold ${theme === 'light' ? 'text-gray-800' : 'text-white'}`}>
+                        <stat.icon
+                          className={`w-8 h-8 mx-auto mb-2 ${stat.color}`}
+                        />
+                        <div
+                          className={`text-2xl font-bold ${theme === "light" ? "text-gray-800" : "text-white"}`}
+                        >
                           {stat.value.toLocaleString()}
                         </div>
-                        <div className={`text-sm ${theme === 'light' ? 'text-gray-600' : 'text-gray-400'}`}>
+                        <div
+                          className={`text-sm ${theme === "light" ? "text-gray-600" : "text-gray-400"}`}
+                        >
                           {stat.label}
                         </div>
                       </CardContent>
@@ -1529,40 +1676,49 @@ export default function Index() {
         <div className="py-20">
           <div className="container mx-auto px-6">
             <div className="text-center mb-16">
-              <h2 className={`text-4xl md:text-5xl font-bold mb-6 ${
-                theme === 'light' ? 'text-gray-800' : 'text-white'
-              }`}>
+              <h2
+                className={`text-4xl md:text-5xl font-bold mb-6 ${
+                  theme === "light" ? "text-gray-800" : "text-white"
+                }`}
+              >
                 Cosmic Game Features
               </h2>
-              <p className={`text-xl max-w-3xl mx-auto ${
-                theme === 'light' ? 'text-gray-700' : 'text-gray-300'
-              }`}>
-                Experience the next generation of space gaming with cutting-edge technology and immersive gameplay
+              <p
+                className={`text-xl max-w-3xl mx-auto ${
+                  theme === "light" ? "text-gray-700" : "text-gray-300"
+                }`}
+              >
+                Experience the next generation of space gaming with cutting-edge
+                technology and immersive gameplay
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {features.map((feature, index) => (
-                <Card 
-                  key={index} 
+                <Card
+                  key={index}
                   className={`${
-                    theme === 'light'
-                      ? 'bg-white/30 border-gray-200/40 hover:bg-white/40 hover:border-gray-300/60'
-                      : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                    theme === "light"
+                      ? "bg-white/30 border-gray-200/40 hover:bg-white/40 hover:border-gray-300/60"
+                      : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
                   } backdrop-blur-sm transition-all duration-300 hover:scale-105 group`}
                 >
                   <CardHeader>
                     <div className="text-cyan-400 mb-4 group-hover:text-cyan-300 transition-colors">
                       {feature.icon}
                     </div>
-                    <CardTitle className={`text-xl ${theme === 'light' ? 'text-gray-800' : 'text-white'}`}>
+                    <CardTitle
+                      className={`text-xl ${theme === "light" ? "text-gray-800" : "text-white"}`}
+                    >
                       {feature.title}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <CardDescription className={`leading-relaxed ${
-                      theme === 'light' ? 'text-gray-700' : 'text-gray-300'
-                    }`}>
+                    <CardDescription
+                      className={`leading-relaxed ${
+                        theme === "light" ? "text-gray-700" : "text-gray-300"
+                      }`}
+                    >
                       {feature.description}
                     </CardDescription>
                   </CardContent>
@@ -1576,55 +1732,59 @@ export default function Index() {
         <div className="py-20">
           <div className="container mx-auto px-6">
             <div className="text-center mb-16">
-              <h2 className={`text-4xl md:text-5xl font-bold mb-6 ${
-                theme === 'light' ? 'text-gray-800' : 'text-white'
-              }`}>
+              <h2
+                className={`text-4xl md:text-5xl font-bold mb-6 ${
+                  theme === "light" ? "text-gray-800" : "text-white"
+                }`}
+              >
                 Mission Control
               </h2>
-              <p className={`text-xl ${theme === 'light' ? 'text-gray-700' : 'text-gray-300'}`}>
+              <p
+                className={`text-xl ${theme === "light" ? "text-gray-700" : "text-gray-300"}`}
+              >
                 Choose your path through the cosmos
               </p>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { 
-                  icon: Play, 
-                  title: 'Launch Game', 
-                  desc: 'Begin your space adventure',
-                  gradient: 'from-green-600 to-emerald-700',
-                  shadow: 'shadow-green-500/25',
-                  onClick: handlePlayAsGuest
+                {
+                  icon: Play,
+                  title: "Launch Game",
+                  desc: "Begin your space adventure",
+                  gradient: "from-green-600 to-emerald-700",
+                  shadow: "shadow-green-500/25",
+                  onClick: handlePlayAsGuest,
                 },
-                { 
-                  icon: Zap, 
-                  title: 'Ship Upgrades', 
-                  desc: 'Enhance your spacecraft',
-                  gradient: 'from-purple-600 to-violet-700',
-                  shadow: 'shadow-purple-500/25',
-                  onClick: () => navigate('/upgrade')
+                {
+                  icon: Zap,
+                  title: "Ship Upgrades",
+                  desc: "Enhance your spacecraft",
+                  gradient: "from-purple-600 to-violet-700",
+                  shadow: "shadow-purple-500/25",
+                  onClick: () => navigate("/upgrade"),
                 },
-                { 
-                  icon: Coins, 
-                  title: 'Space Market', 
-                  desc: 'Trade cosmic resources',
-                  gradient: 'from-blue-600 to-cyan-700',
-                  shadow: 'shadow-blue-500/25',
-                  onClick: () => navigate('/shop')
+                {
+                  icon: Coins,
+                  title: "Space Market",
+                  desc: "Trade cosmic resources",
+                  gradient: "from-blue-600 to-cyan-700",
+                  shadow: "shadow-blue-500/25",
+                  onClick: () => navigate("/shop"),
                 },
-                { 
-                  icon: Trophy, 
-                  title: 'Hall of Fame', 
-                  desc: 'Galactic leaderboards',
-                  gradient: 'from-amber-600 to-orange-700',
-                  shadow: 'shadow-amber-500/25',
-                  onClick: () => navigate('/leaderboard')
-                }
+                {
+                  icon: Trophy,
+                  title: "Hall of Fame",
+                  desc: "Galactic leaderboards",
+                  gradient: "from-amber-600 to-orange-700",
+                  shadow: "shadow-amber-500/25",
+                  onClick: () => navigate("/leaderboard"),
+                },
               ].map((action, index) => (
                 <Card
                   key={index}
                   className={`bg-gradient-to-br ${action.gradient} ${
-                    theme === 'light' ? 'border-gray-200/40' : 'border-white/20'
+                    theme === "light" ? "border-gray-200/40" : "border-white/20"
                   } cursor-pointer hover:scale-105 transition-all duration-300 hover:shadow-xl ${action.shadow} backdrop-blur-sm group`}
                   onClick={action.onClick}
                 >
@@ -1632,7 +1792,9 @@ export default function Index() {
                     <div className="bg-white/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-white/20 transition-colors">
                       <action.icon className="w-8 h-8 text-white" />
                     </div>
-                    <h3 className="font-bold text-white text-lg mb-2">{action.title}</h3>
+                    <h3 className="font-bold text-white text-lg mb-2">
+                      {action.title}
+                    </h3>
                     <p className="text-sm text-white/90">{action.desc}</p>
                   </CardContent>
                 </Card>
@@ -1642,14 +1804,19 @@ export default function Index() {
         </div>
 
         {/* Footer */}
-        <footer className={`border-t backdrop-blur-sm py-8 ${
-          theme === 'light'
-            ? 'border-gray-200/40 bg-white/30'
-            : 'border-white/10 bg-black/20'
-        }`}>
+        <footer
+          className={`border-t backdrop-blur-sm py-8 ${
+            theme === "light"
+              ? "border-gray-200/40 bg-white/30"
+              : "border-white/10 bg-black/20"
+          }`}
+        >
           <div className="container mx-auto px-6 text-center">
-            <p className={theme === 'light' ? 'text-gray-600' : 'text-gray-400'}>
-              &copy; 2025 Virtual Dash. Explore the cosmos with Three.js and Web3 technology.
+            <p
+              className={theme === "light" ? "text-gray-600" : "text-gray-400"}
+            >
+              &copy; 2025 Virtual Dash. Explore the cosmos with Three.js and
+              Web3 technology.
             </p>
           </div>
         </footer>

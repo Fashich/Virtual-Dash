@@ -1,48 +1,64 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useNavigate } from 'react-router-dom';
-import { useGame } from '@/contexts/GameContext';
-import { useWeb3 } from '@/hooks/useWeb3';
-import { useTheme } from '@/contexts/ThemeContext';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { Wallet, User, ArrowLeft, Gamepad2, Mail, LogIn, UserCheck, Eye, EyeOff } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useNavigate } from "react-router-dom";
+import { useGame } from "@/contexts/GameContext";
+import { useWeb3 } from "@/hooks/useWeb3";
+import { useTheme } from "@/contexts/ThemeContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  Wallet,
+  User,
+  ArrowLeft,
+  Gamepad2,
+  Mail,
+  LogIn,
+  UserCheck,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Login() {
   const navigate = useNavigate();
   const { dispatch } = useGame();
   const { connectWallet, isConnecting, error } = useWeb3();
   const { theme } = useTheme();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [loginError, setLoginError] = useState('');
+  const [loginError, setLoginError] = useState("");
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      setLoginError('Please fill in all fields');
+      setLoginError("Please fill in all fields");
       return;
     }
 
     setIsLoggingIn(true);
-    setLoginError('');
-    
+    setLoginError("");
+
     try {
       // Simulate login process
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       // For demo purposes, any email/password combination works
       const playerId = `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       dispatch({
-        type: 'UPDATE_PLAYER',
+        type: "UPDATE_PLAYER",
         payload: {
           id: playerId,
-          name: email.split('@')[0], // Use email prefix as display name
+          name: email.split("@")[0], // Use email prefix as display name
           email: email.trim(),
           coins: 2500, // Returning player bonus
           diamonds: 25, // Returning player bonus
@@ -50,11 +66,11 @@ export default function Login() {
       });
 
       setIsLoggingIn(false);
-      navigate('/');
+      navigate("/");
     } catch (error) {
       setIsLoggingIn(false);
-      setLoginError('Login failed. Please try again.');
-      console.error('Error logging in:', error);
+      setLoginError("Login failed. Please try again.");
+      console.error("Error logging in:", error);
     }
   };
 
@@ -63,19 +79,21 @@ export default function Login() {
       await connectWallet();
       if (!error) {
         // Auto-login with wallet
-        navigate('/');
+        navigate("/");
       }
     } catch (error) {
-      console.error('Wallet connection error:', error);
+      console.error("Wallet connection error:", error);
     }
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 transition-colors duration-300 ${
-      theme === 'light'
-        ? 'bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100'
-        : 'bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900'
-    }`}>
+    <div
+      className={`min-h-screen flex items-center justify-center p-4 transition-colors duration-300 ${
+        theme === "light"
+          ? "bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100"
+          : "bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900"
+      }`}
+    >
       {/* Background decorations */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl"></div>
@@ -86,32 +104,36 @@ export default function Login() {
         {/* Back to Home Button - Better positioned */}
         <div className="mb-6 flex justify-between items-center">
           <Button
-            onClick={() => navigate('/')}
+            onClick={() => navigate("/")}
             variant="ghost"
-            className={`${theme === 'light' ? 'text-gray-800 hover:bg-gray-100' : 'text-white hover:bg-white/10'} transition-colors`}
+            className={`${theme === "light" ? "text-gray-800 hover:bg-gray-100" : "text-white hover:bg-white/10"} transition-colors`}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
           </Button>
           <ThemeToggle />
         </div>
-        
+
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
-            <img 
-              src="https://cdn.builder.io/api/v1/image/assets%2F61bb2c2b59304a3e8ff6f05c93913451%2Fb4dbc5f8d01c47418626106a29f0d54b?format=webp&width=800" 
-              alt="Virtual Dash Logo" 
+            <img
+              src="https://cdn.builder.io/api/v1/image/assets%2F61bb2c2b59304a3e8ff6f05c93913451%2Fb4dbc5f8d01c47418626106a29f0d54b?format=webp&width=800"
+              alt="Virtual Dash Logo"
               className="w-8 h-8 rounded-lg object-cover"
             />
             <h1 className="text-2xl font-bold text-white">Virtual Dash</h1>
           </div>
           <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>
-          <p className="text-gray-300">Sign in to continue your space adventure</p>
+          <p className="text-gray-300">
+            Sign in to continue your space adventure
+          </p>
         </div>
 
         {/* Login Form */}
-        <Card className={`${theme === 'light' ? 'bg-white/80 border-gray-200' : 'bg-black/20 border-gray-700'} backdrop-blur-sm`}>
+        <Card
+          className={`${theme === "light" ? "bg-white/80 border-gray-200" : "bg-black/20 border-gray-700"} backdrop-blur-sm`}
+        >
           <CardHeader>
             <CardTitle className="text-white text-center">Sign In</CardTitle>
             <CardDescription className="text-gray-300 text-center">
@@ -128,9 +150,9 @@ export default function Login() {
                 size="lg"
               >
                 <Wallet className="w-5 h-5 mr-2" />
-                {isConnecting ? 'Connecting...' : 'Connect Wallet & Sign In'}
+                {isConnecting ? "Connecting..." : "Connect Wallet & Sign In"}
               </Button>
-              
+
               {error && (
                 <Alert className="border-red-500/50 bg-red-500/10">
                   <AlertDescription className="text-red-300">
@@ -164,7 +186,7 @@ export default function Login() {
                   className="bg-black/20 border-gray-600 text-white placeholder:text-gray-400"
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-white">
                   Password
@@ -209,13 +231,15 @@ export default function Login() {
                 size="lg"
               >
                 <LogIn className="w-5 h-5 mr-2" />
-                {isLoggingIn ? 'Signing In...' : 'Sign In'}
+                {isLoggingIn ? "Signing In..." : "Sign In"}
               </Button>
             </div>
 
             {/* Benefits for Returning Players */}
             <div className="mt-8 p-4 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-lg border border-emerald-500/20">
-              <h3 className="text-white font-semibold mb-2">Welcome Back Bonus</h3>
+              <h3 className="text-white font-semibold mb-2">
+                Welcome Back Bonus
+              </h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
@@ -231,31 +255,31 @@ export default function Login() {
             {/* Signup Alternative */}
             <div className="text-center space-y-3">
               <p className="text-gray-400 text-sm">
-                Don't have an account?{' '}
+                Don't have an account?{" "}
                 <Button
                   variant="link"
                   className="text-blue-400 hover:text-blue-300 p-0 h-auto"
-                  onClick={() => navigate('/signup')}
+                  onClick={() => navigate("/signup")}
                 >
                   Sign Up
                 </Button>
               </p>
-              
+
               {/* Guest Play Option */}
               <div className="border-t border-gray-600 pt-4">
                 <Button
                   onClick={() => {
                     // Set guest mode in game state
                     dispatch({
-                      type: 'UPDATE_PLAYER',
-                      payload: { 
-                        id: 'guest_' + Date.now(),
-                        name: 'Guest Player',
+                      type: "UPDATE_PLAYER",
+                      payload: {
+                        id: "guest_" + Date.now(),
+                        name: "Guest Player",
                         coins: 0,
-                        diamonds: 0
-                      }
+                        diamonds: 0,
+                      },
                     });
-                    navigate('/game');
+                    navigate("/game");
                   }}
                   variant="ghost"
                   className="w-full text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-500/50"
