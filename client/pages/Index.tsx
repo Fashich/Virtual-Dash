@@ -539,19 +539,29 @@ function EarthSurface() {
 
   return (
     <>
-      {/* Ground Plane */}
+      {/* Main Ground Plane - More realistic positioning */}
       <mesh
         ref={groundRef}
         rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, -2, 0]}
+        position={[0, 0, 0]}
         material={groundMaterial}
       >
-        <planeGeometry args={[200, 200]} />
+        <planeGeometry args={[300, 300, 32, 32]} />
       </mesh>
 
-      {/* Horizon Ring */}
-      <mesh ref={horizonRef} position={[0, 20, 0]} material={horizonMaterial}>
-        <cylinderGeometry args={[80, 80, 20, 32, 1, true]} />
+      {/* Detailed Ground Area around camera */}
+      <mesh
+        ref={detailGroundRef}
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 0.1, 0]}
+        material={groundMaterial}
+      >
+        <planeGeometry args={[50, 50, 16, 16]} />
+      </mesh>
+
+      {/* Enhanced Horizon Ring */}
+      <mesh ref={horizonRef} position={[0, 25, 0]} material={horizonMaterial}>
+        <cylinderGeometry args={[120, 120, 30, 64, 1, true]} />
       </mesh>
     </>
   );
