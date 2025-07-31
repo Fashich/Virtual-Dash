@@ -171,6 +171,26 @@
     @apply bg-background text-foreground;
   }
 
+  /* Hide scrollbar for all browsers */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  * {
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  html, body {
+    overflow-x: hidden;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer and Edge */
+  }
+
+  html::-webkit-scrollbar, body::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
+  }
+
   /* Mobile-specific styles */
   @media (max-width: 768px) {
     html {
