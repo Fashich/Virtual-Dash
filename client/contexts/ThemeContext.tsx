@@ -117,7 +117,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setTheme,
       isTransitioning,
       requestThemeChange,
-      completeThemeTransition
+      completeThemeTransition,
+      pendingTheme,
+      cameraReachedGround
     }}>
       {children}
     </ThemeContext.Provider>
