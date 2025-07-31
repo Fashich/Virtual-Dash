@@ -1,12 +1,12 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '@/contexts/GameContext';
 import { useWeb3 } from '@/hooks/useWeb3';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Sphere, Box, Torus, Text3D, Stars, OrbitControls } from '@react-three/drei';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Float, Sphere, Box, Torus, Stars, OrbitControls, Points, PointMaterial, Trail, Sparkles as DreiSparkles } from '@react-three/drei';
 import { useSpring, animated } from '@react-spring/three';
 import * as THREE from 'three';
 import { 
@@ -24,227 +24,487 @@ import {
   Sparkles
 } from 'lucide-react';
 
-// Mouse Following Light Component
-function MouseFollowLight() {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [isVisible, setIsVisible] = useState(false);
+// Realistic Earth Component
+function Earth() {
+  const earthRef = useRef<THREE.Mesh>(null);
+  const cloudsRef = useRef<THREE.Mesh>(null);
+  const atmosphereRef = useRef<THREE.Mesh>(null);
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-      setIsVisible(true);
-    };
+  // Create Earth materials
+  const earthMaterial = useMemo(() => {
+    const material = new THREE.MeshPhongMaterial({
+      map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+        <svg width="512" height="256" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="earth" cx="50%" cy="50%">
+              <stop offset="0%" style="stop-color:#4a90e2"/>
+              <stop offset="60%" style="stop-color:#2e5d9a"/>
+              <stop offset="100%" style="stop-color:#1a3d6b"/>
+            </radialGradient>
+            <radialGradient id="continent" cx="30%" cy="40%">
+              <stop offset="0%" style="stop-color:#6b8e23"/>
+              <stop offset="50%" style="stop-color:#556b2f"/>
+              <stop offset="100%" style="stop-color:#3d4f1f"/>
+            </radialGradient>
+          </defs>
+          <rect width="512" height="256" fill="url(#earth)"/>
+          <ellipse cx="120" cy="80" rx="50" ry="30" fill="url(#continent)"/>
+          <ellipse cx="300" cy="120" rx="70" ry="40" fill="url(#continent)"/>
+          <ellipse cx="450" cy="60" rx="40" ry="25" fill="url(#continent)"/>
+          <ellipse cx="80" cy="180" rx="35" ry="20" fill="url(#continent)"/>
+          <ellipse cx="380" cy="200" rx="60" ry="35" fill="url(#continent)"/>
+        </svg>
+      `)),
+      shininess: 100,
+      transparent: true
+    });
+    material.map!.wrapS = THREE.RepeatWrapping;
+    material.map!.wrapT = THREE.RepeatWrapping;
+    return material;
+  }, []);
 
-    const handleMouseLeave = () => setIsVisible(false);
+  const cloudMaterial = useMemo(() => {
+    return new THREE.MeshLambertMaterial({
+      map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+        <svg width="512" height="256" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="blur">
+              <feGaussianBlur stdDeviation="2"/>
+            </filter>
+          </defs>
+          <rect width="512" height="256" fill="transparent"/>
+          <ellipse cx="100" cy="50" rx="80" ry="20" fill="rgba(255,255,255,0.3)" filter="url(#blur)"/>
+          <ellipse cx="300" cy="100" rx="100" ry="25" fill="rgba(255,255,255,0.2)" filter="url(#blur)"/>
+          <ellipse cx="450" cy="180" rx="60" ry="15" fill="rgba(255,255,255,0.4)" filter="url(#blur)"/>
+          <ellipse cx="150" cy="200" rx="70" ry="18" fill="rgba(255,255,255,0.25)" filter="url(#blur)"/>
+        </svg>
+      `)),
+      transparent: true,
+      opacity: 0.6
+    });
+  }, []);
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseleave', handleMouseLeave);
+  const atmosphereMaterial = useMemo(() => {
+    return new THREE.MeshLambertMaterial({
+      color: new THREE.Color(0.3, 0.6, 1.0),
+      transparent: true,
+      opacity: 0.1,
+      side: THREE.BackSide
+    });
+  }, []);
 
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseleave', handleMouseLeave);
-    };
+  useFrame((state) => {
+    if (earthRef.current) {
+      earthRef.current.rotation.y = state.clock.elapsedTime * 0.05;
+    }
+    if (cloudsRef.current) {
+      cloudsRef.current.rotation.y = state.clock.elapsedTime * 0.07;
+    }
+    if (atmosphereRef.current) {
+      atmosphereRef.current.rotation.y = state.clock.elapsedTime * 0.03;
+    }
+  });
+
+  return (
+    <group position={[20, 5, -30]}>
+      {/* Earth */}
+      <mesh ref={earthRef} material={earthMaterial}>
+        <sphereGeometry args={[6, 64, 64]} />
+      </mesh>
+      
+      {/* Clouds */}
+      <mesh ref={cloudsRef} material={cloudMaterial}>
+        <sphereGeometry args={[6.1, 64, 64]} />
+      </mesh>
+      
+      {/* Atmosphere */}
+      <mesh ref={atmosphereRef} material={atmosphereMaterial}>
+        <sphereGeometry args={[6.5, 32, 32]} />
+      </mesh>
+    </group>
+  );
+}
+
+// Meteor Shower Component
+function MeteorShower() {
+  const meteors = useMemo(() => {
+    return Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      startPosition: [
+        (Math.random() - 0.5) * 100,
+        Math.random() * 50 + 20,
+        -50 - Math.random() * 50
+      ] as [number, number, number],
+      speed: 0.5 + Math.random() * 1.5,
+      size: 0.2 + Math.random() * 0.8,
+      delay: Math.random() * 10
+    }));
   }, []);
 
   return (
     <>
-      <div
-        className={`fixed pointer-events-none z-50 transition-opacity duration-300 ${
-          isVisible ? 'opacity-100' : 'opacity-0'
-        }`}
-        style={{
-          left: mousePosition.x - 150,
-          top: mousePosition.y - 150,
-          width: '300px',
-          height: '300px',
-          background: `radial-gradient(circle, 
-            rgba(59, 130, 246, 0.4) 0%, 
-            rgba(147, 51, 234, 0.3) 25%, 
-            rgba(236, 72, 153, 0.2) 50%, 
-            transparent 70%
-          )`,
-          borderRadius: '50%',
-          filter: 'blur(40px)',
-        }}
+      {meteors.map((meteor) => (
+        <Meteor
+          key={meteor.id}
+          startPosition={meteor.startPosition}
+          speed={meteor.speed}
+          size={meteor.size}
+          delay={meteor.delay}
+        />
+      ))}
+    </>
+  );
+}
+
+function Meteor({ startPosition, speed, size, delay }: {
+  startPosition: [number, number, number];
+  speed: number;
+  size: number;
+  delay: number;
+}) {
+  const meteorRef = useRef<THREE.Mesh>(null);
+  const [active, setActive] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setActive(true), delay * 1000);
+    return () => clearTimeout(timer);
+  }, [delay]);
+
+  useFrame((state) => {
+    if (meteorRef.current && active) {
+      const time = state.clock.elapsedTime - delay;
+      if (time > 0) {
+        meteorRef.current.position.x = startPosition[0] + time * speed * -2;
+        meteorRef.current.position.y = startPosition[1] + time * speed * -1;
+        meteorRef.current.position.z = startPosition[2] + time * speed * 3;
+        
+        // Reset position when meteor goes off screen
+        if (meteorRef.current.position.y < -30) {
+          meteorRef.current.position.set(...startPosition);
+        }
+      }
+    }
+  });
+
+  return (
+    <Trail
+      width={size * 2}
+      length={8}
+      color={new THREE.Color(1, 0.6, 0.2)}
+      attenuation={(t) => t * t}
+    >
+      <mesh ref={meteorRef} position={startPosition}>
+        <sphereGeometry args={[size, 8, 8]} />
+        <meshStandardMaterial
+          color={new THREE.Color(1, 0.4, 0.1)}
+          emissive={new THREE.Color(0.8, 0.3, 0)}
+          emissiveIntensity={0.5}
+        />
+      </mesh>
+    </Trail>
+  );
+}
+
+// Interactive Asteroids
+function InteractiveAsteroids() {
+  const asteroids = useMemo(() => {
+    return Array.from({ length: 15 }, (_, i) => ({
+      id: i,
+      position: [
+        (Math.random() - 0.5) * 80,
+        (Math.random() - 0.5) * 40,
+        -20 - Math.random() * 40
+      ] as [number, number, number],
+      size: 1 + Math.random() * 3,
+      rotationSpeed: (Math.random() - 0.5) * 0.02,
+      orbitRadius: 2 + Math.random() * 5,
+      orbitSpeed: 0.001 + Math.random() * 0.005
+    }));
+  }, []);
+
+  return (
+    <>
+      {asteroids.map((asteroid) => (
+        <InteractiveAsteroid
+          key={asteroid.id}
+          position={asteroid.position}
+          size={asteroid.size}
+          rotationSpeed={asteroid.rotationSpeed}
+          orbitRadius={asteroid.orbitRadius}
+          orbitSpeed={asteroid.orbitSpeed}
+        />
+      ))}
+    </>
+  );
+}
+
+function InteractiveAsteroid({
+  position,
+  size,
+  rotationSpeed,
+  orbitRadius,
+  orbitSpeed
+}: {
+  position: [number, number, number];
+  size: number;
+  rotationSpeed: number;
+  orbitRadius: number;
+  orbitSpeed: number;
+}) {
+  const asteroidRef = useRef<THREE.Mesh>(null);
+  const [hovered, setHovered] = useState(false);
+  const { camera, mouse } = useThree();
+
+  const { scale } = useSpring({
+    scale: hovered ? 1.5 : 1,
+    config: { tension: 300, friction: 10 }
+  });
+
+  useFrame((state) => {
+    if (asteroidRef.current) {
+      const time = state.clock.elapsedTime;
+      
+      // Orbital motion
+      asteroidRef.current.position.x = position[0] + Math.cos(time * orbitSpeed) * orbitRadius;
+      asteroidRef.current.position.z = position[2] + Math.sin(time * orbitSpeed) * orbitRadius;
+      
+      // Rotation
+      asteroidRef.current.rotation.x += rotationSpeed;
+      asteroidRef.current.rotation.y += rotationSpeed * 0.7;
+      
+      // Mouse interaction
+      const mouseVector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
+      mouseVector.unproject(camera);
+      const direction = mouseVector.sub(camera.position).normalize();
+      const distance = camera.position.distanceTo(asteroidRef.current.position);
+      
+      if (distance < 15) {
+        setHovered(true);
+      } else {
+        setHovered(false);
+      }
+    }
+  });
+
+  return (
+    <animated.mesh
+      ref={asteroidRef}
+      position={position}
+      scale={scale}
+      onPointerOver={() => setHovered(true)}
+      onPointerOut={() => setHovered(false)}
+    >
+      <dodecahedronGeometry args={[size, 0]} />
+      <meshStandardMaterial
+        color={hovered ? new THREE.Color(0.8, 0.6, 0.3) : new THREE.Color(0.4, 0.4, 0.4)}
+        roughness={0.8}
+        metalness={0.2}
+        emissive={hovered ? new THREE.Color(0.2, 0.1, 0) : new THREE.Color(0, 0, 0)}
       />
-      <div
-        className={`fixed pointer-events-none z-40 transition-all duration-700 ${
-          isVisible ? 'opacity-60' : 'opacity-0'
-        }`}
-        style={{
-          left: mousePosition.x - 100,
-          top: mousePosition.y - 100,
-          width: '200px',
-          height: '200px',
-          background: `conic-gradient(
-            from 0deg,
-            transparent 0deg,
-            rgba(34, 197, 94, 0.3) 90deg,
-            rgba(59, 130, 246, 0.3) 180deg,
-            rgba(168, 85, 247, 0.3) 270deg,
-            transparent 360deg
-          )`,
-          borderRadius: '50%',
-          filter: 'blur(20px)',
-          animation: 'spin 4s linear infinite',
-        }}
+    </animated.mesh>
+  );
+}
+
+// Particle Dust System
+function SpaceDust() {
+  const points = useRef<THREE.Points>(null);
+  
+  const particlesPosition = useMemo(() => {
+    const positions = new Float32Array(5000 * 3);
+    for (let i = 0; i < 5000; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 100;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 100;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
+    }
+    return positions;
+  }, []);
+
+  useFrame((state) => {
+    if (points.current) {
+      points.current.rotation.x = state.clock.elapsedTime * 0.0001;
+      points.current.rotation.y = state.clock.elapsedTime * 0.0002;
+    }
+  });
+
+  return (
+    <Points ref={points} positions={particlesPosition} stride={3} frustumCulled={false}>
+      <PointMaterial
+        transparent
+        color="#ffffff"
+        size={0.05}
+        sizeAttenuation={true}
+        depthWrite={false}
+        opacity={0.6}
+      />
+    </Points>
+  );
+}
+
+// Nebula Effect
+function NebulaEffect() {
+  const nebulaRef = useRef<THREE.Mesh>(null);
+  
+  useFrame((state) => {
+    if (nebulaRef.current) {
+      nebulaRef.current.rotation.z = state.clock.elapsedTime * 0.001;
+      nebulaRef.current.material.opacity = 0.1 + Math.sin(state.clock.elapsedTime * 0.5) * 0.05;
+    }
+  });
+
+  return (
+    <mesh ref={nebulaRef} position={[-40, 0, -60]}>
+      <planeGeometry args={[80, 80]} />
+      <meshBasicMaterial
+        color={new THREE.Color(0.5, 0.2, 0.8)}
+        transparent
+        opacity={0.1}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  );
+}
+
+// Dynamic Lighting System
+function DynamicLighting() {
+  const { mouse } = useThree();
+  const lightRef = useRef<THREE.PointLight>(null);
+  const spotLightRef = useRef<THREE.SpotLight>(null);
+
+  useFrame(() => {
+    if (lightRef.current) {
+      lightRef.current.position.x = mouse.x * 20;
+      lightRef.current.position.y = mouse.y * 20;
+      lightRef.current.intensity = 1 + mouse.x * 0.5;
+    }
+    if (spotLightRef.current) {
+      spotLightRef.current.target.position.x = mouse.x * 10;
+      spotLightRef.current.target.position.y = mouse.y * 10;
+    }
+  });
+
+  return (
+    <>
+      <ambientLight intensity={0.1} />
+      <pointLight
+        ref={lightRef}
+        position={[10, 10, 10]}
+        intensity={1.2}
+        color={new THREE.Color(0.3, 0.6, 1.0)}
+        distance={100}
+      />
+      <spotLight
+        ref={spotLightRef}
+        position={[20, 20, 20]}
+        angle={0.3}
+        penumbra={1}
+        intensity={0.8}
+        color={new THREE.Color(0.8, 0.4, 1.0)}
+        distance={80}
+      />
+      <directionalLight
+        position={[-20, 10, 5]}
+        intensity={0.5}
+        color={new THREE.Color(1.0, 0.8, 0.6)}
       />
     </>
   );
 }
 
-// 3D Space Objects
-function SpaceObjects() {
-  const groupRef = useRef<THREE.Group>(null);
-  
-  useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y = state.clock.elapsedTime * 0.1;
-    }
-  });
-
-  return (
-    <group ref={groupRef}>
-      {/* Floating Planet */}
-      <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
-        <Sphere position={[-15, 8, -20]} args={[3, 64, 64]}>
-          <meshStandardMaterial
-            color="#4338ca"
-            roughness={0.3}
-            metalness={0.7}
-            transparent
-            opacity={0.8}
-          />
-        </Sphere>
-      </Float>
-
-      {/* Rotating Ring */}
-      <Float speed={1.5} rotationIntensity={2} floatIntensity={0.5}>
-        <Torus position={[15, -5, -15]} args={[4, 0.8, 16, 100]}>
-          <meshStandardMaterial
-            color="#06b6d4"
-            metalness={0.9}
-            roughness={0.1}
-            transparent
-            opacity={0.7}
-          />
-        </Torus>
-      </Float>
-
-      {/* Crystal Structure */}
-      <Float speed={1} rotationIntensity={1} floatIntensity={2}>
-        <Box position={[0, 12, -25]} args={[2, 6, 2]}>
-          <meshStandardMaterial
-            color="#8b5cf6"
-            metalness={1}
-            roughness={0}
-            transparent
-            opacity={0.8}
-          />
-        </Box>
-      </Float>
-
-      {/* Asteroid Field */}
-      {Array.from({ length: 15 }, (_, i) => (
-        <Float key={i} speed={1 + Math.random()} rotationIntensity={Math.random() * 2}>
-          <Sphere
-            position={[
-              (Math.random() - 0.5) * 80,
-              (Math.random() - 0.5) * 40,
-              -30 - Math.random() * 50
-            ]}
-            args={[0.5 + Math.random() * 1.5, 16, 16]}
-          >
-            <meshStandardMaterial
-              color={['#f59e0b', '#ef4444', '#10b981', '#06b6d4'][Math.floor(Math.random() * 4)]}
-              roughness={0.8}
-              metalness={0.2}
-              transparent
-              opacity={0.6}
-            />
-          </Sphere>
-        </Float>
-      ))}
-    </group>
-  );
-}
-
-// Space Background Canvas
-function SpaceBackground() {
+// Main 3D Space Scene
+function SpaceScene() {
   return (
     <div className="fixed inset-0 z-0">
       <Canvas
-        camera={{ position: [0, 0, 1], fov: 75 }}
-        style={{ background: 'transparent' }}
+        camera={{ position: [0, 0, 20], fov: 75 }}
+        style={{ background: 'linear-gradient(180deg, #000011 0%, #000033 50%, #000055 100%)' }}
         dpr={[1, 2]}
+        gl={{ antialias: true, alpha: true }}
       >
-        <ambientLight intensity={0.2} />
-        <pointLight position={[10, 10, 10]} intensity={0.8} color="#3b82f6" />
-        <pointLight position={[-10, -10, -10]} intensity={0.5} color="#8b5cf6" />
-        <spotLight
-          position={[20, 20, 20]}
-          angle={0.3}
-          penumbra={1}
-          intensity={0.7}
-          color="#06b6d4"
+        <DynamicLighting />
+        
+        {/* Enhanced Stars */}
+        <Stars 
+          radius={200} 
+          depth={50} 
+          count={12000} 
+          factor={6} 
+          saturation={0.5} 
+          fade 
+          speed={2} 
         />
         
-        <Stars radius={200} depth={50} count={8000} factor={4} saturation={0} fade speed={1} />
-        <SpaceObjects />
+        {/* 3D Objects */}
+        <Earth />
+        <MeteorShower />
+        <InteractiveAsteroids />
+        <SpaceDust />
+        <NebulaEffect />
+        
+        {/* Additional Effects */}
+        <DreiSparkles 
+          count={100} 
+          scale={[40, 40, 40]} 
+          size={2} 
+          speed={0.4} 
+          opacity={0.6}
+          color="#4fc3f7"
+        />
+        
+        {/* Orbital Controls for subtle camera movement */}
+        <OrbitControls 
+          enableZoom={false} 
+          enablePan={false} 
+          enableRotate={false}
+          autoRotate
+          autoRotateSpeed={0.2}
+        />
       </Canvas>
     </div>
   );
 }
 
-// Dynamic Gradient Background
-function DynamicGradientBackground() {
-  const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 });
-  const [time, setTime] = useState(0);
+// Enhanced Mouse Following Effect
+function EnhancedMouseEffect() {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isMoving, setIsMoving] = useState(false);
 
   useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    
     const handleMouseMove = (e: MouseEvent) => {
-      const x = (e.clientX / window.innerWidth) * 100;
-      const y = (e.clientY / window.innerHeight) * 100;
-      setMousePosition({ x, y });
+      setMousePosition({ x: e.clientX, y: e.clientY });
+      setIsMoving(true);
+      
+      clearTimeout(timeout);
+      timeout = setTimeout(() => setIsMoving(false), 100);
     };
 
-    const timer = setInterval(() => setTime(prev => prev + 1), 100);
-
     window.addEventListener('mousemove', handleMouseMove);
-
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
-      clearInterval(timer);
+      clearTimeout(timeout);
     };
   }, []);
 
-  const { x, y } = mousePosition;
-  const wave1 = Math.sin(time * 0.01) * 20;
-  const wave2 = Math.cos(time * 0.015) * 30;
-  const wave3 = Math.sin(time * 0.008) * 25;
-
   return (
     <div
-      className="fixed inset-0 z-10"
+      className={`fixed pointer-events-none z-30 transition-all duration-300 ${
+        isMoving ? 'opacity-80' : 'opacity-40'
+      }`}
       style={{
-        background: `
-          radial-gradient(circle at ${x + wave1}% ${y + wave2}%, 
-            rgba(6, 182, 212, 0.3) 0%, 
-            transparent 60%),
-          radial-gradient(circle at ${x - wave2}% ${y - wave1}%, 
-            rgba(139, 92, 246, 0.25) 0%, 
-            transparent 50%),
-          radial-gradient(circle at ${x + wave3}% ${y + wave3}%, 
-            rgba(236, 72, 153, 0.2) 0%, 
-            transparent 50%),
-          linear-gradient(135deg, 
-            #000510 0%, 
-            #0f0728 25%, 
-            #1a0b3d 50%, 
-            #0d1421 75%, 
-            #000000 100%)
-        `,
-        transition: 'background 0.3s ease-out',
+        left: mousePosition.x - 200,
+        top: mousePosition.y - 200,
+        width: '400px',
+        height: '400px',
+        background: `radial-gradient(circle, 
+          rgba(59, 130, 246, 0.3) 0%, 
+          rgba(147, 51, 234, 0.2) 30%, 
+          rgba(236, 72, 153, 0.1) 60%, 
+          transparent 80%
+        )`,
+        borderRadius: '50%',
+        filter: 'blur(60px)',
+        transform: `scale(${isMoving ? 1.2 : 1})`,
       }}
     />
   );
@@ -257,7 +517,6 @@ export default function Index() {
 
   // Guest mode handler
   const handlePlayAsGuest = () => {
-    // Set guest mode in game state
     dispatch({
       type: 'UPDATE_PLAYER',
       payload: { 
@@ -305,27 +564,24 @@ export default function Index() {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Space Background */}
-      <SpaceBackground />
+      {/* Enhanced 3D Space Background */}
+      <SpaceScene />
       
-      {/* Dynamic Gradient Overlay */}
-      <DynamicGradientBackground />
-      
-      {/* Mouse Following Light */}
-      <MouseFollowLight />
+      {/* Enhanced Mouse Effect */}
+      <EnhancedMouseEffect />
 
       {/* Content */}
       <div className="relative z-20">
         {/* Professional Navbar */}
-        <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-black/20 border-b border-white/10">
+        <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-black/30 border-b border-white/10">
           <div className="container mx-auto px-6 py-4">
             <div className="flex justify-between items-center">
               {/* Logo Section */}
               <div className="flex items-center space-x-3">
                 <div className="relative">
-                  <img
-                    src="https://cdn.builder.io/api/v1/image/assets%2F61bb2c2b59304a3e8ff6f05c93913451%2Fb4dbc5f8d01c47418626106a29f0d54b?format=webp&width=800"
-                    alt="Virtual Dash Logo"
+                  <img 
+                    src="https://cdn.builder.io/api/v1/image/assets%2F61bb2c2b59304a3e8ff6f05c93913451%2Fb4dbc5f8d01c47418626106a29f0d54b?format=webp&width=800" 
+                    alt="Virtual Dash Logo" 
                     className="w-10 h-10 rounded-lg object-cover"
                   />
                   <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg blur opacity-30"></div>
@@ -353,7 +609,7 @@ export default function Index() {
                   </Button>
                 )}
                 
-                <Button
+                <Button 
                   onClick={() => navigate('/signup')}
                   className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0 shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all duration-300 hover:scale-105"
                 >
@@ -406,7 +662,7 @@ export default function Index() {
               </div>
 
               {/* Guest Mode Notice */}
-              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 max-w-2xl mx-auto mb-12">
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 max-w-2xl mx-auto mb-12 backdrop-blur-sm">
                 <div className="flex items-center justify-center space-x-2 text-yellow-300">
                   <Sparkles className="w-5 h-5" />
                   <span className="text-sm font-medium">
