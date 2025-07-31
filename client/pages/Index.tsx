@@ -26,56 +26,163 @@ import {
   Sparkles
 } from 'lucide-react';
 
-// Enhanced Camera Controller for cinematic theme transitions
+// Professional Multi-Stage Camera Controller
 function CameraController() {
   const { camera } = useThree();
   const { theme } = useTheme();
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [animationStage, setAnimationStage] = useState(0);
   const targetPosition = useRef(new THREE.Vector3());
   const targetLookAt = useRef(new THREE.Vector3());
   const currentLookAt = useRef(new THREE.Vector3());
 
-  // Much smoother spring animation with custom easing
+  // Multi-stage spring animation
   const { progress } = useSpring({
     progress: theme === 'light' ? 1 : 0,
     config: {
-      tension: 40,
-      friction: 60,
-      mass: 1.5,
-      duration: 4000 // 4 second cinematic transition
+      tension: 30,
+      friction: 40,
+      mass: 2,
+      duration: 6000 // 6 second cinematic sequence
     },
-    onStart: () => setIsTransitioning(true),
-    onRest: () => setIsTransitioning(false)
+    onStart: () => {
+      setIsTransitioning(true);
+      setAnimationStage(0);
+    },
+    onRest: () => {
+      setIsTransitioning(false);
+      setAnimationStage(theme === 'light' ? 3 : 0);
+    }
   });
 
   useFrame(() => {
     const t = progress.get();
 
-    // Custom easing function for cinematic feel
-    const easeInOutCubic = (t: number) => {
-      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-    };
-    const easedT = easeInOutCubic(t);
+    // Define animation stages
+    let stage1T = 0; // Space view (0-0.3)
+    let stage2T = 0; // Zoom to Earth (0.3-0.7)
+    let stage3T = 0; // Land and look up (0.7-1.0)
 
-    // Define camera positions
-    const spacePosition = new THREE.Vector3(0, 0, 25); // Space view
-    const earthPosition = new THREE.Vector3(0, 2, 8);  // On Earth surface looking up
+    if (t <= 0.3) {
+      stage1T = t / 0.3;
+      setAnimationStage(1);
+    } else if (t <= 0.7) {
+      stage1T = 1;
+      stage2T = (t - 0.3) / 0.4;
+      setAnimationStage(2);
+    } else {
+      stage1T = 1;
+      stage2T = 1;
+      stage3T = (t - 0.7) / 0.3;
+      setAnimationStage(3);
+    }
 
-    // Define look-at targets
-    const spaceLookAt = new THREE.Vector3(0, 0, 0);     // Look at space center
-    const earthLookAt = new THREE.Vector3(0, 50, 0);    // Look up at sky
+    // Smooth easing functions
+    const easeInOut = (t: number) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+    const easeIn = (t: number) => t * t * t;
 
-    // Smoothly interpolate camera position
-    targetPosition.current.lerpVectors(spacePosition, earthPosition, easedT);
+    if (theme === 'light') {
+      // Going to light theme - multi-stage animation
+      if (stage1T < 1) {
+        // Stage 1: Stay in space but start moving toward Earth
+        const easedT1 = easeInOut(stage1T);
+        const spacePos = new THREE.Vector3(0, 0, 25);
+        const approachPos = new THREE.Vector3(0, 5, 20);
+        targetPosition.current.lerpVectors(spacePos, approachPos, easedT1);
+
+        // Keep looking at Earth center
+        const earthCenter = new THREE.Vector3(20, 5, -30);
+        currentLookAt.current.lerp(earthCenter, 0.02);
+
+        camera.fov = THREE.MathUtils.lerp(75, 80, easedT1);
+      } else if (stage2T < 1) {
+        // Stage 2: Dramatic zoom toward Earth
+        const easedT2 = easeIn(stage2T);
+        const approachPos = new THREE.Vector3(0, 5, 20);
+        const closePos = new THREE.Vector3(15, 8, -5);
+        targetPosition.current.lerpVectors(approachPos, closePos, easedT2);
+
+        // Continue looking at Earth but get closer
+        const earthCenter = new THREE.Vector3(20, 5, -30);
+        const closeEarthView = new THREE.Vector3(20, 6, -25);
+        const lookTarget = new THREE.Vector3();
+        lookTarget.lerpVectors(earthCenter, closeEarthView, easedT2);
+        currentLookAt.current.lerp(lookTarget, 0.03);
+
+        camera.fov = THREE.MathUtils.lerp(80, 95, easedT2);
+      } else {
+        // Stage 3: Land on Earth and look up at sky
+        const easedT3 = easeOut(stage3T);
+        const closePos = new THREE.Vector3(15, 8, -5);
+        const groundPos = new THREE.Vector3(0, 2, 8);
+        targetPosition.current.lerpVectors(closePos, groundPos, easedT3);
+
+        // Transition from looking at Earth to looking up at sky
+        const closeEarthView = new THREE.Vector3(20, 6, -25);
+        const skyView = new THREE.Vector3(0, 50, 0);
+        const lookTarget = new THREE.Vector3();
+        lookTarget.lerpVectors(closeEarthView, skyView, easedT3);
+        currentLookAt.current.lerp(lookTarget, 0.04);
+
+        camera.fov = THREE.MathUtils.lerp(95, 90, easedT3);
+      }
+    } else {
+      // Going to dark theme - reverse sequence
+      const reverseT = 1 - t;
+      const easedReverse = easeInOut(reverseT);
+
+      if (reverseT > 0.7) {
+        // Reverse stage 3: Look down from sky to Earth
+        const stageT = (reverseT - 0.7) / 0.3;
+        const easedT = easeIn(stageT);
+        const groundPos = new THREE.Vector3(0, 2, 8);
+        const closePos = new THREE.Vector3(15, 8, -5);
+        targetPosition.current.lerpVectors(groundPos, closePos, easedT);
+
+        const skyView = new THREE.Vector3(0, 50, 0);
+        const closeEarthView = new THREE.Vector3(20, 6, -25);
+        const lookTarget = new THREE.Vector3();
+        lookTarget.lerpVectors(skyView, closeEarthView, easedT);
+        currentLookAt.current.lerp(lookTarget, 0.04);
+
+        camera.fov = THREE.MathUtils.lerp(90, 95, easedT);
+      } else if (reverseT > 0.3) {
+        // Reverse stage 2: Zoom out from Earth
+        const stageT = (reverseT - 0.3) / 0.4;
+        const easedT = easeOut(stageT);
+        const closePos = new THREE.Vector3(15, 8, -5);
+        const approachPos = new THREE.Vector3(0, 5, 20);
+        targetPosition.current.lerpVectors(closePos, approachPos, easedT);
+
+        const closeEarthView = new THREE.Vector3(20, 6, -25);
+        const earthCenter = new THREE.Vector3(20, 5, -30);
+        const lookTarget = new THREE.Vector3();
+        lookTarget.lerpVectors(closeEarthView, earthCenter, easedT);
+        currentLookAt.current.lerp(lookTarget, 0.03);
+
+        camera.fov = THREE.MathUtils.lerp(95, 80, easedT);
+      } else {
+        // Reverse stage 1: Return to space
+        const stageT = reverseT / 0.3;
+        const easedT = easeInOut(stageT);
+        const approachPos = new THREE.Vector3(0, 5, 20);
+        const spacePos = new THREE.Vector3(0, 0, 25);
+        targetPosition.current.lerpVectors(approachPos, spacePos, easedT);
+
+        const earthCenter = new THREE.Vector3(20, 5, -30);
+        const spaceCenter = new THREE.Vector3(0, 0, 0);
+        const lookTarget = new THREE.Vector3();
+        lookTarget.lerpVectors(earthCenter, spaceCenter, easedT);
+        currentLookAt.current.lerp(lookTarget, 0.02);
+
+        camera.fov = THREE.MathUtils.lerp(80, 75, easedT);
+      }
+    }
+
+    // Apply camera transformations
     camera.position.copy(targetPosition.current);
-
-    // Smoothly interpolate look-at target
-    targetLookAt.current.lerpVectors(spaceLookAt, earthLookAt, easedT);
-    currentLookAt.current.lerp(targetLookAt.current, 0.05);
     camera.lookAt(currentLookAt.current);
-
-    // Dynamic FOV for cinematic effect
-    camera.fov = THREE.MathUtils.lerp(75, 90, easedT);
     camera.updateProjectionMatrix();
   });
 
@@ -547,23 +654,26 @@ function Earth() {
     }
   });
 
+  // Hide Earth when in light theme (we're on Earth, not viewing it)
+  if (theme === 'light') return null;
+
   return (
     <group position={[20, 5, -30]}>
       {/* Earth Core */}
       <mesh ref={earthRef} material={earthMaterial}>
         <sphereGeometry args={[6, 128, 64]} />
       </mesh>
-      
+
       {/* Night Lights */}
       <mesh ref={nightLightsRef} material={nightLightsMaterial}>
         <sphereGeometry args={[6.02, 64, 32]} />
       </mesh>
-      
+
       {/* Cloud Layer */}
       <mesh ref={cloudsRef} material={cloudMaterial}>
         <sphereGeometry args={[6.15, 64, 32]} />
       </mesh>
-      
+
       {/* Atmosphere Glow */}
       <mesh ref={atmosphereRef} material={atmosphereMaterial}>
         <sphereGeometry args={[6.8, 32, 16]} />
@@ -615,7 +725,7 @@ function Moon() {
     }
   });
 
-  // Hide moon in light theme for cleaner sky view
+  // Hide Moon when in light theme (we're on Earth, not viewing it from space)
   if (theme === 'light') return null;
 
   return (
