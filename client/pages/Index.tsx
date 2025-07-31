@@ -353,10 +353,9 @@ export default function Index() {
                   </Button>
                 )}
                 
-                <Button 
+                <Button
                   onClick={() => navigate('/signup')}
-                  variant="outline"
-                  className="border-white/20 text-white hover:bg-white/10 hover:border-white/30"
+                  className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0 shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all duration-300 hover:scale-105"
                 >
                   <UserPlus className="w-4 h-4 mr-2" />
                   Sign Up
