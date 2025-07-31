@@ -91,6 +91,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setIsTransitioning(false);
   };
 
+  const cameraReachedGround = () => {
+    // Called when camera animation confirms it has reached the ground
+    if (pendingTheme === "light" && transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
+      setTheme("light");
+      setPendingTheme(null);
+      setIsTransitioning(false);
+    }
+  };
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
