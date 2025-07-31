@@ -6,6 +6,8 @@ import { Label } from '@/components/ui/label';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '@/contexts/GameContext';
 import { useWeb3 } from '@/hooks/useWeb3';
+import { useTheme } from '@/contexts/ThemeContext';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Wallet, User, ArrowLeft, Gamepad2, Mail, UserCheck } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -13,6 +15,7 @@ export default function Signup() {
   const navigate = useNavigate();
   const { dispatch } = useGame();
   const { connectWallet, isConnecting, error } = useWeb3();
+  const { theme } = useTheme();
   const [playerName, setPlayerName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -67,7 +70,11 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex items-center justify-center p-4">
+    <div className={`min-h-screen flex items-center justify-center p-4 transition-colors duration-300 ${
+      theme === 'light'
+        ? 'bg-gradient-to-br from-blue-100 via-purple-50 to-indigo-100'
+        : 'bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900'
+    }`}>
       {/* Background decorations */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl"></div>
@@ -76,15 +83,16 @@ export default function Signup() {
 
       <div className="relative z-10 w-full max-w-md">
         {/* Back to Home Button - Better positioned */}
-        <div className="mb-6">
+        <div className="mb-6 flex justify-between items-center">
           <Button
             onClick={() => navigate('/')}
             variant="ghost"
-            className="text-white hover:bg-white/10 transition-colors"
+            className={`${theme === 'light' ? 'text-gray-800 hover:bg-gray-100' : 'text-white hover:bg-white/10'} transition-colors`}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
           </Button>
+          <ThemeToggle />
         </div>
 
         {/* Header */}
@@ -99,7 +107,7 @@ export default function Signup() {
         </div>
 
         {/* Signup Form */}
-        <Card className="bg-black/20 border-gray-700 backdrop-blur-sm">
+        <Card className={`${theme === 'light' ? 'bg-white/80 border-gray-200' : 'bg-black/20 border-gray-700'} backdrop-blur-sm`}>
           <CardHeader>
             <CardTitle className="text-white text-center">Create Account</CardTitle>
             <CardDescription className="text-gray-300 text-center">
