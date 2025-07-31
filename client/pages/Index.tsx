@@ -1588,7 +1588,7 @@ function DynamicLighting() {
 
 // Main 3D Space Scene
 function SpaceScene() {
-  const { theme } = useTheme();
+  const { theme, pendingTheme, isTransitioning } = useTheme();
 
   const backgroundGradient =
     theme === "light"
@@ -1604,11 +1604,11 @@ function SpaceScene() {
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: true }}
       >
-        <CameraController />
-        <DynamicLighting />
+        <CameraController theme={theme} pendingTheme={pendingTheme} isTransitioning={isTransitioning} />
+        <DynamicLighting theme={theme} />
 
         {/* Atmospheric Sky for Light Theme */}
-        <AtmosphericSky />
+        <AtmosphericSky theme={theme} />
 
         {/* Enhanced Stars */}
         <Stars
@@ -1622,18 +1622,18 @@ function SpaceScene() {
         />
 
         {/* 3D Objects */}
-        <Earth />
-        <Moon />
-        <Sun />
-        <MeteorShower />
-        <InteractiveAsteroids />
-        <SpaceDust />
+        <Earth theme={theme} />
+        <Moon theme={theme} />
+        <Sun theme={theme} />
+        <MeteorShower theme={theme} />
+        <InteractiveAsteroids theme={theme} />
+        <SpaceDust theme={theme} />
 
         {/* Realistic 3D Clouds for Light Theme */}
-        <RealisticClouds />
+        <RealisticClouds theme={theme} />
 
         {/* Earth Surface Elements */}
-        <EarthSurface />
+        <EarthSurface theme={theme} />
 
         {/* Additional Effects */}
         <DreiSparkles
