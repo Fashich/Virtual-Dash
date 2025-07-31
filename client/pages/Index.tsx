@@ -31,67 +31,183 @@ function Earth() {
   const earthRef = useRef<THREE.Mesh>(null);
   const cloudsRef = useRef<THREE.Mesh>(null);
   const atmosphereRef = useRef<THREE.Mesh>(null);
+  const nightLightsRef = useRef<THREE.Mesh>(null);
 
-  // Create Earth materials
+  // Create highly realistic Earth materials
   const earthMaterial = useMemo(() => {
     const material = new THREE.MeshPhongMaterial({
       map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
-        <svg width="512" height="256" xmlns="http://www.w3.org/2000/svg">
+        <svg width="1024" height="512" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <radialGradient id="earth" cx="50%" cy="50%">
-              <stop offset="0%" style="stop-color:#4a90e2"/>
-              <stop offset="60%" style="stop-color:#2e5d9a"/>
-              <stop offset="100%" style="stop-color:#1a3d6b"/>
+            <radialGradient id="ocean" cx="50%" cy="50%">
+              <stop offset="0%" style="stop-color:#0077be"/>
+              <stop offset="40%" style="stop-color:#005fa3"/>
+              <stop offset="80%" style="stop-color:#003d6b"/>
+              <stop offset="100%" style="stop-color:#002347"/>
             </radialGradient>
-            <radialGradient id="continent" cx="30%" cy="40%">
-              <stop offset="0%" style="stop-color:#6b8e23"/>
-              <stop offset="50%" style="stop-color:#556b2f"/>
-              <stop offset="100%" style="stop-color:#3d4f1f"/>
+            <linearGradient id="landmass" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#228B22"/>
+              <stop offset="30%" style="stop-color:#32CD32"/>
+              <stop offset="60%" style="stop-color:#9ACD32"/>
+              <stop offset="80%" style="stop-color:#8B4513"/>
+              <stop offset="100%" style="stop-color:#654321"/>
+            </linearGradient>
+            <radialGradient id="forest" cx="40%" cy="30%">
+              <stop offset="0%" style="stop-color:#006400"/>
+              <stop offset="50%" style="stop-color:#228B22"/>
+              <stop offset="100%" style="stop-color:#2F4F2F"/>
+            </radialGradient>
+            <radialGradient id="desert" cx="60%" cy="70%">
+              <stop offset="0%" style="stop-color:#F4A460"/>
+              <stop offset="50%" style="stop-color:#D2691E"/>
+              <stop offset="100%" style="stop-color:#A0522D"/>
             </radialGradient>
           </defs>
-          <rect width="512" height="256" fill="url(#earth)"/>
-          <ellipse cx="120" cy="80" rx="50" ry="30" fill="url(#continent)"/>
-          <ellipse cx="300" cy="120" rx="70" ry="40" fill="url(#continent)"/>
-          <ellipse cx="450" cy="60" rx="40" ry="25" fill="url(#continent)"/>
-          <ellipse cx="80" cy="180" rx="35" ry="20" fill="url(#continent)"/>
-          <ellipse cx="380" cy="200" rx="60" ry="35" fill="url(#continent)"/>
+
+          <!-- Ocean base -->
+          <rect width="1024" height="512" fill="url(#ocean)"/>
+
+          <!-- Africa & Europe -->
+          <path d="M400 120 Q420 100 450 110 Q480 120 500 140 Q520 160 530 200 Q540 250 520 300 Q500 350 480 380 Q460 400 440 390 Q420 380 400 360 Q380 340 370 300 Q360 250 370 200 Q380 160 400 120 Z" fill="url(#landmass)"/>
+
+          <!-- North America -->
+          <path d="M100 80 Q150 60 200 70 Q250 80 280 120 Q300 160 290 200 Q280 240 250 260 Q220 280 180 270 Q140 260 110 220 Q80 180 90 140 Q100 100 100 80 Z" fill="url(#forest)"/>
+
+          <!-- South America -->
+          <path d="M180 280 Q200 270 220 280 Q240 300 250 340 Q260 380 250 420 Q240 460 220 480 Q200 490 180 480 Q160 470 150 440 Q140 400 150 360 Q160 320 180 280 Z" fill="url(#forest)"/>
+
+          <!-- Asia -->
+          <path d="M550 90 Q600 70 650 80 Q700 90 750 120 Q800 150 820 190 Q840 230 830 270 Q820 310 800 340 Q780 360 750 350 Q720 340 690 320 Q660 300 630 270 Q600 240 580 200 Q560 160 550 120 Q540 100 550 90 Z" fill="url(#landmass)"/>
+
+          <!-- Australia -->
+          <path d="M700 360 Q730 350 760 360 Q790 370 800 390 Q810 410 800 430 Q790 450 760 460 Q730 470 700 460 Q670 450 660 430 Q650 410 660 390 Q670 370 700 360 Z" fill="url(#desert)"/>
+
+          <!-- Greenland -->
+          <ellipse cx="150" cy="40" rx="30" ry="20" fill="#F0F8FF"/>
+
+          <!-- Antarctic -->
+          <rect x="0" y="480" width="1024" height="32" fill="#F0F8FF"/>
+
+          <!-- Additional forest areas -->
+          <ellipse cx="650" cy="180" rx="40" ry="25" fill="url(#forest)"/>
+          <ellipse cx="200" cy="400" rx="35" ry="60" fill="url(#forest)"/>
+
+          <!-- Desert areas -->
+          <ellipse cx="480" cy="200" rx="30" ry="20" fill="url(#desert)"/>
+          <ellipse cx="580" cy="160" rx="25" ry="15" fill="url(#desert)"/>
         </svg>
       `)),
-      shininess: 100,
-      transparent: true
+      normalMap: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+        <svg width="1024" height="512" xmlns="http://www.w3.org/2000/svg">
+          <rect width="1024" height="512" fill="#8080FF"/>
+          <circle cx="200" cy="150" r="40" fill="#9090FF"/>
+          <circle cx="450" cy="200" r="60" fill="#9090FF"/>
+          <circle cx="650" cy="180" r="50" fill="#9090FF"/>
+          <circle cx="750" cy="380" r="35" fill="#9090FF"/>
+        </svg>
+      `)),
+      shininess: 30,
+      specular: new THREE.Color(0.2, 0.4, 0.8),
+      transparent: false
     });
     material.map!.wrapS = THREE.RepeatWrapping;
     material.map!.wrapT = THREE.RepeatWrapping;
+    material.normalMap!.wrapS = THREE.RepeatWrapping;
+    material.normalMap!.wrapT = THREE.RepeatWrapping;
     return material;
   }, []);
 
   const cloudMaterial = useMemo(() => {
     return new THREE.MeshLambertMaterial({
       map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
-        <svg width="512" height="256" xmlns="http://www.w3.org/2000/svg">
+        <svg width="1024" height="512" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <filter id="blur">
-              <feGaussianBlur stdDeviation="2"/>
+              <feGaussianBlur stdDeviation="3"/>
             </filter>
+            <radialGradient id="cloud1" cx="50%" cy="50%">
+              <stop offset="0%" style="stop-color:rgba(255,255,255,0.8)"/>
+              <stop offset="60%" style="stop-color:rgba(255,255,255,0.4)"/>
+              <stop offset="100%" style="stop-color:rgba(255,255,255,0.1)"/>
+            </radialGradient>
+            <radialGradient id="cloud2" cx="40%" cy="60%">
+              <stop offset="0%" style="stop-color:rgba(255,255,255,0.7)"/>
+              <stop offset="50%" style="stop-color:rgba(255,255,255,0.3)"/>
+              <stop offset="100%" style="stop-color:rgba(255,255,255,0.05)"/>
+            </radialGradient>
           </defs>
-          <rect width="512" height="256" fill="transparent"/>
-          <ellipse cx="100" cy="50" rx="80" ry="20" fill="rgba(255,255,255,0.3)" filter="url(#blur)"/>
-          <ellipse cx="300" cy="100" rx="100" ry="25" fill="rgba(255,255,255,0.2)" filter="url(#blur)"/>
-          <ellipse cx="450" cy="180" rx="60" ry="15" fill="rgba(255,255,255,0.4)" filter="url(#blur)"/>
-          <ellipse cx="150" cy="200" rx="70" ry="18" fill="rgba(255,255,255,0.25)" filter="url(#blur)"/>
+          <rect width="1024" height="512" fill="transparent"/>
+
+          <!-- Storm systems -->
+          <ellipse cx="150" cy="80" rx="120" ry="40" fill="url(#cloud1)" filter="url(#blur)"/>
+          <ellipse cx="350" cy="140" rx="100" ry="35" fill="url(#cloud2)" filter="url(#blur)"/>
+          <ellipse cx="600" cy="90" rx="90" ry="30" fill="url(#cloud1)" filter="url(#blur)"/>
+          <ellipse cx="800" cy="160" rx="110" ry="45" fill="url(#cloud2)" filter="url(#blur)"/>
+
+          <!-- Tropical clouds -->
+          <ellipse cx="200" cy="250" rx="80" ry="25" fill="url(#cloud1)" filter="url(#blur)"/>
+          <ellipse cx="450" cy="280" rx="95" ry="30" fill="url(#cloud2)" filter="url(#blur)"/>
+          <ellipse cx="700" cy="320" rx="85" ry="28" fill="url(#cloud1)" filter="url(#blur)"/>
+
+          <!-- Polar clouds -->
+          <ellipse cx="100" cy="40" rx="60" ry="20" fill="rgba(255,255,255,0.9)" filter="url(#blur)"/>
+          <ellipse cx="900" cy="50" rx="70" ry="25" fill="rgba(255,255,255,0.8)" filter="url(#blur)"/>
+
+          <!-- Scattered clouds -->
+          <circle cx="300" cy="200" r="30" fill="rgba(255,255,255,0.4)" filter="url(#blur)"/>
+          <circle cx="550" cy="240" r="25" fill="rgba(255,255,255,0.5)" filter="url(#blur)"/>
+          <circle cx="750" cy="200" r="35" fill="rgba(255,255,255,0.3)" filter="url(#blur)"/>
+          <circle cx="120" cy="300" r="40" fill="rgba(255,255,255,0.6)" filter="url(#blur)"/>
         </svg>
       `)),
       transparent: true,
-      opacity: 0.6
+      opacity: 0.7,
+      depthWrite: false
     });
   }, []);
 
   const atmosphereMaterial = useMemo(() => {
     return new THREE.MeshLambertMaterial({
-      color: new THREE.Color(0.3, 0.6, 1.0),
+      color: new THREE.Color(0.4, 0.7, 1.0),
       transparent: true,
-      opacity: 0.1,
-      side: THREE.BackSide
+      opacity: 0.15,
+      side: THREE.BackSide,
+      blending: THREE.AdditiveBlending
+    });
+  }, []);
+
+  const nightLightsMaterial = useMemo(() => {
+    return new THREE.MeshBasicMaterial({
+      map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
+        <svg width="1024" height="512" xmlns="http://www.w3.org/2000/svg">
+          <rect width="1024" height="512" fill="#000000"/>
+
+          <!-- City lights - North America -->
+          <circle cx="150" cy="120" r="2" fill="#FFD700"/>
+          <circle cx="180" cy="140" r="1.5" fill="#FFD700"/>
+          <circle cx="200" cy="130" r="1" fill="#FFA500"/>
+          <circle cx="220" cy="150" r="2" fill="#FFD700"/>
+
+          <!-- City lights - Europe -->
+          <circle cx="420" cy="100" r="1.5" fill="#FFD700"/>
+          <circle cx="440" cy="110" r="1" fill="#FFA500"/>
+          <circle cx="460" cy="105" r="1.5" fill="#FFD700"/>
+
+          <!-- City lights - Asia -->
+          <circle cx="620" cy="120" r="2" fill="#FFD700"/>
+          <circle cx="650" cy="140" r="1.5" fill="#FFD700"/>
+          <circle cx="680" cy="130" r="1" fill="#FFA500"/>
+          <circle cx="720" cy="150" r="2" fill="#FFD700"/>
+
+          <!-- Smaller settlements -->
+          <circle cx="250" cy="300" r="1" fill="#FFA500"/>
+          <circle cx="500" cy="250" r="1" fill="#FFA500"/>
+          <circle cx="750" cy="350" r="1" fill="#FFA500"/>
+        </svg>
+      `)),
+      transparent: true,
+      opacity: 0.8,
+      blending: THREE.AdditiveBlending
     });
   }, []);
 
