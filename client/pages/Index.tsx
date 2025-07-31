@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 
 // Professional Multi-Stage Camera Controller
-function CameraController({ theme, pendingTheme, isTransitioning }: { theme: string; pendingTheme: string | null; isTransitioning: boolean }) {
+function CameraController({ theme, pendingTheme, isTransitioning, cameraReachedGround }: { theme: string; pendingTheme: string | null; isTransitioning: boolean; cameraReachedGround: () => void }) {
   const { camera } = useThree();
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [animationStage, setAnimationStage] = useState(0);
@@ -1593,7 +1593,7 @@ function SpaceScene() {
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: true }}
       >
-        <CameraController theme={theme} pendingTheme={pendingTheme} isTransitioning={isTransitioning} />
+        <CameraController theme={theme} pendingTheme={pendingTheme} isTransitioning={isTransitioning} cameraReachedGround={() => {}} />
         <DynamicLighting theme={theme} />
 
         {/* Atmospheric Sky for Light Theme */}
