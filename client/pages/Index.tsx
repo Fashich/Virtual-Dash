@@ -26,62 +26,79 @@ import {
   Sparkles
 } from 'lucide-react';
 
-// Camera Controller for smooth theme transitions
+// Enhanced Camera Controller for cinematic theme transitions
 function CameraController() {
   const { camera } = useThree();
   const { theme } = useTheme();
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const targetPosition = useRef(new THREE.Vector3());
+  const targetLookAt = useRef(new THREE.Vector3());
+  const currentLookAt = useRef(new THREE.Vector3());
 
-  const { position, fov } = useSpring({
-    position: theme === 'light' 
-      ? [8, 3, 15] as [number, number, number]  // Close to Earth surface
-      : [0, 0, 20] as [number, number, number], // Space view
-    fov: theme === 'light' ? 85 : 75,
-    config: { 
-      tension: 80, 
-      friction: 40,
-      duration: 3000 // 3 second smooth transition
+  // Much smoother spring animation with custom easing
+  const { progress } = useSpring({
+    progress: theme === 'light' ? 1 : 0,
+    config: {
+      tension: 40,
+      friction: 60,
+      mass: 1.5,
+      duration: 4000 // 4 second cinematic transition
     },
     onStart: () => setIsTransitioning(true),
     onRest: () => setIsTransitioning(false)
   });
 
   useFrame(() => {
-    camera.position.lerp(
-      new THREE.Vector3(position.get()[0], position.get()[1], position.get()[2]), 
-      0.02
-    );
-    camera.fov = fov.get();
+    const t = progress.get();
+
+    // Custom easing function for cinematic feel
+    const easeInOutCubic = (t: number) => {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    };
+    const easedT = easeInOutCubic(t);
+
+    // Define camera positions
+    const spacePosition = new THREE.Vector3(0, 0, 25); // Space view
+    const earthPosition = new THREE.Vector3(0, 2, 8);  // On Earth surface looking up
+
+    // Define look-at targets
+    const spaceLookAt = new THREE.Vector3(0, 0, 0);     // Look at space center
+    const earthLookAt = new THREE.Vector3(0, 50, 0);    // Look up at sky
+
+    // Smoothly interpolate camera position
+    targetPosition.current.lerpVectors(spacePosition, earthPosition, easedT);
+    camera.position.copy(targetPosition.current);
+
+    // Smoothly interpolate look-at target
+    targetLookAt.current.lerpVectors(spaceLookAt, earthLookAt, easedT);
+    currentLookAt.current.lerp(targetLookAt.current, 0.05);
+    camera.lookAt(currentLookAt.current);
+
+    // Dynamic FOV for cinematic effect
+    camera.fov = THREE.MathUtils.lerp(75, 90, easedT);
     camera.updateProjectionMatrix();
-    
-    // Look at Earth when in light mode, space when in dark mode
-    const target = theme === 'light' 
-      ? new THREE.Vector3(20, 5, -30) // Look at Earth
-      : new THREE.Vector3(0, 0, 0);   // Look at center
-    
-    camera.lookAt(target);
   });
 
   return null;
 }
 
-// Realistic 3D Clouds for Light Theme
+// Realistic 3D Clouds positioned for ground-up view
 function RealisticClouds() {
   const { theme } = useTheme();
   const cloudsGroupRef = useRef<THREE.Group>(null);
-  
-  // Create multiple cloud layers with different sizes and heights
+
+  // Position clouds above for sky view
   const cloudLayers = useMemo(() => {
-    return Array.from({ length: 25 }, (_, i) => ({
+    return Array.from({ length: 30 }, (_, i) => ({
       id: i,
       position: [
-        (Math.random() - 0.5) * 80,
-        5 + Math.random() * 15,
-        -20 + (Math.random() - 0.5) * 60
+        (Math.random() - 0.5) * 120,  // Wider spread
+        25 + Math.random() * 40,      // Much higher up in the sky
+        (Math.random() - 0.5) * 120   // Wider depth
       ] as [number, number, number],
-      scale: 0.8 + Math.random() * 2.5,
-      speed: 0.002 + Math.random() * 0.008,
-      opacity: 0.3 + Math.random() * 0.4
+      scale: 1.2 + Math.random() * 3.5,
+      speed: 0.001 + Math.random() * 0.005,
+      opacity: 0.4 + Math.random() * 0.5
     }));
   }, []);
 
@@ -91,10 +108,10 @@ function RealisticClouds() {
         const layer = cloudLayers[index];
         if (cloud && layer) {
           cloud.position.x += layer.speed;
-          if (cloud.position.x > 40) {
-            cloud.position.x = -40;
+          if (cloud.position.x > 60) {
+            cloud.position.x = -60;
           }
-          cloud.rotation.y = state.clock.elapsedTime * 0.001;
+          cloud.rotation.y = state.clock.elapsedTime * 0.0005;
         }
       });
     }
@@ -126,18 +143,19 @@ function RealisticCloud({ position, scale, opacity }: {
 
   const cloudMaterial = useMemo(() => {
     return new THREE.MeshLambertMaterial({
-      color: new THREE.Color(0.95, 0.95, 1.0),
+      color: new THREE.Color(1.0, 1.0, 1.0),
       transparent: true,
       opacity: opacity,
-      alphaTest: 0.1
+      alphaTest: 0.1,
+      side: THREE.DoubleSide
     });
   }, [opacity]);
 
   useFrame((state) => {
     if (cloudRef.current) {
       // Gentle floating animation
-      cloudRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.5 + position[0]) * 0.3;
-      cloudRef.current.rotation.y = state.clock.elapsedTime * 0.01;
+      cloudRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.3 + position[0]) * 0.8;
+      cloudRef.current.rotation.y = state.clock.elapsedTime * 0.005;
     }
   });
 
@@ -174,29 +192,33 @@ function RealisticCloud({ position, scale, opacity }: {
   );
 }
 
-// Atmospheric Sky for Light Theme
+// Enhanced Atmospheric Sky for Ground View
 function AtmosphericSky() {
   const { theme } = useTheme();
   const skyRef = useRef<THREE.Mesh>(null);
+  const sunGlowRef = useRef<THREE.Mesh>(null);
 
   const skyMaterial = useMemo(() => {
     return new THREE.MeshBasicMaterial({
       map: new THREE.TextureLoader().load('data:image/svg+xml;base64,' + btoa(`
-        <svg width="512" height="256" xmlns="http://www.w3.org/2000/svg">
+        <svg width="1024" height="512" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <linearGradient id="skyGradient" x1="0%" y1="100%" x2="0%" y2="0%">
               <stop offset="0%" style="stop-color:#87CEEB"/>
-              <stop offset="30%" style="stop-color:#87CEFA"/>
-              <stop offset="60%" style="stop-color:#B0E0E6"/>
+              <stop offset="20%" style="stop-color:#87CEFA"/>
+              <stop offset="50%" style="stop-color:#B0E0E6"/>
+              <stop offset="80%" style="stop-color:#E6F3FF"/>
               <stop offset="100%" style="stop-color:#F0F8FF"/>
             </linearGradient>
+            <radialGradient id="sunGlow" cx="20%" cy="20%">
+              <stop offset="0%" style="stop-color:rgba(255,255,224,0.8)"/>
+              <stop offset="30%" style="stop-color:rgba(255,255,224,0.4)"/>
+              <stop offset="70%" style="stop-color:rgba(255,255,224,0.1)"/>
+              <stop offset="100%" style="stop-color:rgba(255,255,224,0)"/>
+            </radialGradient>
           </defs>
-          <rect width="512" height="256" fill="url(#skyGradient)"/>
-          
-          <!-- Sun glow effect -->
-          <circle cx="400" cy="80" r="60" fill="rgba(255,255,224,0.3)"/>
-          <circle cx="400" cy="80" r="40" fill="rgba(255,255,224,0.5)"/>
-          <circle cx="400" cy="80" r="20" fill="rgba(255,255,255,0.8)"/>
+          <rect width="1024" height="512" fill="url(#skyGradient)"/>
+          <ellipse cx="200" cy="100" rx="150" ry="80" fill="url(#sunGlow)"/>
         </svg>
       `)),
       side: THREE.BackSide,
@@ -205,16 +227,35 @@ function AtmosphericSky() {
     });
   }, [theme]);
 
-  useFrame(() => {
+  useFrame((state) => {
     if (skyRef.current) {
       skyRef.current.material.opacity = theme === 'light' ? 1.0 : 0.0;
+    }
+    if (sunGlowRef.current && theme === 'light') {
+      sunGlowRef.current.material.opacity = 0.3 + Math.sin(state.clock.elapsedTime * 0.5) * 0.1;
     }
   });
 
   return (
-    <mesh ref={skyRef} material={skyMaterial}>
-      <sphereGeometry args={[100, 32, 16]} />
-    </mesh>
+    <>
+      {/* Sky Dome */}
+      <mesh ref={skyRef} material={skyMaterial}>
+        <sphereGeometry args={[150, 32, 16]} />
+      </mesh>
+
+      {/* Sun Atmospheric Glow */}
+      {theme === 'light' && (
+        <mesh ref={sunGlowRef} position={[-40, 60, -20]}>
+          <sphereGeometry args={[15, 16, 16]} />
+          <meshBasicMaterial
+            color={new THREE.Color(1.0, 1.0, 0.8)}
+            transparent
+            opacity={0.3}
+            blending={THREE.AdditiveBlending}
+          />
+        </mesh>
+      )}
+    </>
   );
 }
 
@@ -641,7 +682,8 @@ function Sun() {
     }
   });
 
-  const sunPosition = theme === 'light' ? [-30, 15, -40] : [-70, 25, -90];
+  // Position sun in the sky for ground view
+  const sunPosition = theme === 'light' ? [-40, 60, -20] : [-70, 25, -90];
 
   return (
     <group position={sunPosition}>
