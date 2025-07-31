@@ -1362,6 +1362,7 @@ function SpaceScene() {
 
   return (
     <div className="fixed inset-0 z-0">
+      <TransitionGradient />
       <Canvas
         camera={{ position: [0, 0, 20], fov: 75 }}
         style={{ background: backgroundGradient }}
